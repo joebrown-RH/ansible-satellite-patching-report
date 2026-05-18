@@ -6,20 +6,12 @@
   ansible.builtin.debug:
     msg:
       - "use_aap_artifacts: {{ use_aap_artifacts }}"
-      - "Target artifact directory: /runner/artifacts"
+      - "Target artifact directory: /runner/artifacts (managed by AAP)"
       - "Report timestamp: {{ report_timestamp }}"
       - "Generated report files: {{ generated_report_files }}"
   when: use_aap_artifacts | bool
 
-- name: Ensure AAP artifact directory exists
-  ansible.builtin.file:
-    path: "/runner/artifacts"
-    state: directory
-    mode: '0755'
-  delegate_to: localhost
-  when: use_aap_artifacts | bool
-
-- name: Copy reports to AAP artifact directory (base path for AAP 2.x)
+- name: Copy reports to AAP artifact directory (AAP 2.x)
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/runner/artifacts/{{ report_timestamp }}_{{ item | basename }}"
