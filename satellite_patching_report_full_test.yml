@@ -6,11 +6,10 @@
   roles:
     - role: satellite_patching_report
       vars:
-        # Satellite connection - flexible to work with different credential formats
-        # AAP Red Hat Satellite credential may inject different variable names
-        satellite_server: "{{ host | default(satellite_url | default(lookup('env', 'SATELLITE_SERVER') | default('satellite.example.com'))) }}"
-        satellite_username: "{{ username | default(satellite_username | default(lookup('env', 'SATELLITE_USERNAME') | default('admin'))) }}"
-        satellite_password: "{{ password | default(satellite_password | default(lookup('env', 'SATELLITE_PASSWORD') | default(''))) }}"
+        # Satellite connection - requires AAP credential that injects host, username, password
+        satellite_server: "{{ host }}"
+        satellite_username: "{{ username }}"
+        satellite_password: "{{ password }}"
         satellite_validate_certs: false
 
         # Report configuration
