@@ -96,6 +96,23 @@
   register: satellite_hosts
   delegate_to: localhost
 
+- name: Query errata for each host
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/hosts/{{ item.id }}/errata"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: 200
+  loop: "{{ satellite_hosts.json.results }}"
+  register: host_errata
+  delegate_to: localhost
+  when: satellite_hosts.json.results | length > 0
+  ignore_errors: true
+
 - name: Build patching report data structure
   ansible.builtin.set_fact:
     patching_report_data:
@@ -124,9 +141,9 @@
   delegate_to: localhost
   when: satellite_hosts.json.results | length > 0
 
-- name: Add package details to report data
+- name: Add package and errata details to report data
   ansible.builtin.set_fact:
-    patching_report_data: "{{ patching_report_data | combine({'host_packages': host_packages.results | default([])}) }}"
+    patching_report_data: "{{ patching_report_data | combine({'host_packages': host_packages.results | default([]), 'host_errata': host_errata.results | default([])}) }}"
 
 - name: Generate HTML report
   ansible.builtin.template:

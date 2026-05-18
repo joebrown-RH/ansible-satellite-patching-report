@@ -613,6 +613,250 @@
                 break-inside: avoid;
             }
         }
+
+        /* Job-centric view with collapsible hosts */
+        .job-card {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .job-card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-card-header:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
+        .job-header-left h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.3rem;
+        }
+
+        .job-meta-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+
+        .job-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .job-header-right {
+            text-align: right;
+        }
+
+        .job-stats {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .job-toggle-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .job-card-header.collapsed .job-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .job-card-body {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .job-card-body.collapsed {
+            max-height: 0;
+        }
+
+        .job-hosts-section {
+            padding: 20px;
+        }
+
+        .hosts-search-box {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .hosts-search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .hosts-search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hosts-list {
+            margin-top: 15px;
+        }
+
+        .host-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+
+        .host-item.hidden {
+            display: none;
+        }
+
+        .host-item-header {
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .host-item-header:hover {
+            background: #f1f3f5;
+        }
+
+        .host-item-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .host-package-count {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .host-errata-count {
+            background: #ffc107;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .host-toggle-icon {
+            transition: transform 0.2s;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .host-item-header.collapsed .host-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .host-item-body {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: white;
+        }
+
+        .host-item-body.collapsed {
+            max-height: 0;
+        }
+
+        .host-details {
+            padding: 15px;
+        }
+
+        .host-packages-section,
+        .host-errata-section {
+            margin-bottom: 15px;
+        }
+
+        .host-section-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .package-table {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .package-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .package-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .errata-item {
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .errata-item.critical {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .errata-item.important {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .errata-item.moderate {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .errata-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .errata-meta {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .no-hosts-message {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -734,60 +978,65 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <div class="section-content" id="jobsSection">
-                    <div id="jobsList">
-                        {% if patching_report_data.total_jobs | int > 0 %}
-                            {% for job in patching_report_data.jobs %}
-                            <div class="host-card"
-                                 data-hostname="{{ job.targeting.search_query | default('unknown') | lower }}"
-                                 data-environment="{{ job.targeting.search_query | default('') | lower }}"
-                                 data-status="{{ 'success' if job.succeeded else 'error' }}"
-                                 data-contentview="{{ job.content_view | default('unknown') | lower }}">
-                                <div class="host-card-header">
-                                    <div class="host-name">{{ job.description | default('Patching Job') }}</div>
-                                    <div class="host-status {{ 'success' if job.succeeded else 'error' }}">
-                                        {{ '✅ Success' if job.succeeded else '❌ Failed' }}
+                    {% if patching_report_data.total_jobs | int > 0 %}
+                        {% for job in patching_report_data.jobs %}
+                        {% set job_detail = patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+                        {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+
+                        {# Calculate hosts count and total packages #}
+                        {% set target_hosts = job.targeting.hosts | default([]) %}
+                        {% set hosts_count = target_hosts | length %}
+
+                        <div class="job-card">
+                            <div class="job-card-header" onclick="toggleJobCard(this)">
+                                <div class="job-header-left">
+                                    <h3>📋 {{ job.description | default('Patching Job') }}</h3>
+                                    <div class="job-meta-row">
+                                        <div class="job-meta-item">
+                                            <span>🆔 Job ID: <strong>{{ job.id }}</strong></span>
+                                        </div>
+                                        <div class="job-meta-item">
+                                            <span>👤 {{ job.username | default('N/A') }}</span>
+                                        </div>
+                                        <div class="job-meta-item">
+                                            <span>🕐 {{ job.start_at | default('N/A') }}</span>
+                                        </div>
+                                        <div class="job-meta-item">
+                                            <span>{{ '✅ Success' if job.succeeded else '❌ Failed' }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="host-card-body">
-                                    <div class="host-meta">
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Started</span>
-                                            <span class="host-meta-value">{{ job.start_at | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Finished</span>
-                                            <span class="host-meta-value">{{ job.finished_at | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">User</span>
-                                            <span class="host-meta-value">{{ job.username | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Job ID</span>
-                                            <span class="host-meta-value">{{ job.id }}</span>
+                                <div class="job-header-right">
+                                    <div class="job-stats">
+                                        🖥️ <strong>{{ hosts_count }}</strong> host{{ 's' if hosts_count != 1 else '' }}
+                                    </div>
+                                    <div class="job-toggle-icon">▼</div>
+                                </div>
+                            </div>
+
+                            <div class="job-card-body">
+                                <div class="job-hosts-section">
+                                    {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
+
+                                    {# Hosts search box #}
+                                    <div class="hosts-search-box">
+                                        <input type="text"
+                                               class="hosts-search-input"
+                                               placeholder="🔍 Search hosts in this job..."
+                                               oninput="searchHosts(this, '{{ job.id }}')"
+                                               id="search-job-{{ job.id }}">
+                                        <div style="margin-top: 8px; font-size: 0.9rem; color: #6c757d;">
+                                            Showing: <span id="host-count-{{ job.id }}">{{ job_output.json.outputs | length }} of {{ job_output.json.outputs | length }}</span> hosts
+                                            <span style="margin-left: 15px;">
+                                                <a href="javascript:void(0)" onclick="expandAllHosts('{{ job.id }}')" style="color: #667eea; text-decoration: none;">Expand All</a>
+                                                |
+                                                <a href="javascript:void(0)" onclick="collapseAllHosts('{{ job.id }}')" style="color: #667eea; text-decoration: none;">Collapse All</a>
+                                            </span>
                                         </div>
                                     </div>
 
-                                    {% set job_detail = patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
-                                    {% if job_detail and job_detail.json is defined %}
-                                    {% set task_name = job.description | default('') | lower %}
-                                    {% set is_patch_job = 'patch' in task_name or 'update' in task_name or 'errata' in task_name %}
-
-                                    {% if is_patch_job %}
-                                    <div class="package-details-toggle" onclick="togglePackageDetails(this)">
-                                        <div class="package-details-toggle-text">
-                                            📦 Package & Errata Details
-                                            <span class="package-count-badge">Click to view</span>
-                                        </div>
-                                        <span class="toggle-arrow">▼</span>
-                                    </div>
-                                    <div class="package-details-content">
-                                        {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
-
-                                        {# Parse and display package updates per host #}
-                                        {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
-
-                                        {# Loop through each host's output #}
+                                    {# Hosts list #}
+                                    <div class="hosts-list" id="hosts-list-{{ job.id }}">
                                         {% for host_output in job_output.json.outputs %}
                                         {% if host_output.output is defined %}
 
@@ -801,15 +1050,14 @@
                                         {% set output_text = host_lines | join('') %}
 
                                         {# Parse package updates from DNF/YUM output #}
-                                        {% if 'Upgrading' in output_text or 'Installing' in output_text %}
                                         {% set package_upgrades = {} %}
                                         {% set package_old_versions = {} %}
 
+                                        {% if 'Upgrading' in output_text or 'Installing' in output_text %}
                                         {# First pass: Extract new versions from transaction table #}
                                         {% for line in output_text.split('\n') %}
                                             {% if line | trim and not line.startswith('=') and not line.startswith('-') %}
                                                 {% set parts = line.split() %}
-                                                {# Lines like: gnutls x86_64 3.8.10-3.el10_1 rhel-10-... #}
                                                 {% if parts | length >= 4 and parts[0] not in ['Package', 'Upgrade', 'Install', 'Upgrading:', 'Installing:', 'Downloading', 'Running', 'Preparing', 'Cleanup', 'Installed', 'Upgraded:', 'Complete!', 'Red', 'Dependencies', 'Updating', 'Transaction', 'Total'] %}
                                                     {% if parts[1] in ['x86_64', 'noarch', 'i686', 'aarch64', 's390x', 'ppc64le'] and '.' in parts[2] %}
                                                         {% set _ = package_upgrades.update({parts[0]: {'version': parts[2], 'arch': parts[1]}}) %}
@@ -821,20 +1069,15 @@
                                         {# Second pass: Extract old versions from "Cleanup" section #}
                                         {% for line in output_text.split('\n') %}
                                             {% if 'Cleanup' in line and ':' in line %}
-                                                {# Lines like: Cleanup : gnutls-3.8.10-2.el10.x86_64 12/14 #}
                                                 {% set cleanup_part = line.split(':')[1] | trim %}
                                                 {% set parts = cleanup_part.split() %}
                                                 {% if parts | length >= 1 %}
                                                     {% set full_package = parts[0] %}
-                                                    {# Split package-version-release.arch format #}
                                                     {% if full_package.endswith('.x86_64') or full_package.endswith('.noarch') or full_package.endswith('.i686') or full_package.endswith('.aarch64') %}
-                                                        {# Extract arch #}
                                                         {% set pkg_parts = full_package.rsplit('.', 1) %}
                                                         {% set pkg_name_version = pkg_parts[0] %}
-                                                        {# Find package name by looking for it in our upgrades dict #}
                                                         {% for pkg_name in package_upgrades.keys() %}
                                                             {% if pkg_name_version.startswith(pkg_name ~ '-') %}
-                                                                {# Extract version (everything after package name and first dash) #}
                                                                 {% set old_version = pkg_name_version[pkg_name|length + 1:] %}
                                                                 {% set _ = package_old_versions.update({pkg_name: old_version}) %}
                                                             {% endif %}
@@ -843,77 +1086,114 @@
                                                 {% endif %}
                                             {% endif %}
                                         {% endfor %}
+                                        {% endif %}
 
-                                        {# Only display if packages were found #}
-                                        {% if package_upgrades | length > 0 %}
-                                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ee0000;">
-                                            <div style="margin-bottom: 12px;">
-                                                <strong style="font-size: 1.1em; color: #ee0000;">🖥️ {{ host_output.host_name | default('Unknown Host') }}</strong>
+                                        {# Get errata for this host #}
+                                        {% set hostname = host_output.host_name | default('Unknown Host') %}
+                                        {% set host_data = patching_report_data.hosts | selectattr('name', 'equalto', hostname) | first | default(none) %}
+                                        {% set host_errata_data = [] %}
+                                        {% if host_data %}
+                                            {% set host_errata_result = patching_report_data.host_errata | selectattr('item.id', 'equalto', host_data.id) | first | default(none) %}
+                                            {% if host_errata_result and host_errata_result.json is defined and host_errata_result.json.results is defined %}
+                                                {% set host_errata_data = host_errata_result.json.results %}
+                                            {% endif %}
+                                        {% endif %}
+
+                                        {# Display host item #}
+                                        <div class="host-item" data-hostname="{{ hostname | lower }}">
+                                            <div class="host-item-header collapsed" onclick="toggleHost(this)">
+                                                <div class="host-item-title">
+                                                    🖥️ <strong>{{ hostname }}</strong>
+                                                    {% if package_upgrades | length > 0 %}
+                                                    <span class="host-package-count">📦 {{ package_upgrades | length }}</span>
+                                                    {% endif %}
+                                                    {% if host_errata_data | length > 0 %}
+                                                    <span class="host-errata-count">⚠️ {{ host_errata_data | length }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="host-toggle-icon">▼</div>
                                             </div>
 
-                                            <div style="padding: 12px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
-                                                <strong>📦 Package Updates ({{ package_upgrades | length }}):</strong>
-                                                <div class="package-list" style="margin-top: 10px;">
-                                                    {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
-                                                    <div class="package-item">
-                                                        <div>
-                                                            <div class="package-name">{{ pkg_name }}</div>
-                                                            <div class="package-versions">
-                                                                {% if pkg_name in package_old_versions %}
-                                                                <span class="version-old">{{ package_old_versions[pkg_name] }}</span>
-                                                                <span class="version-arrow">→</span>
-                                                                {% endif %}
-                                                                <span class="version-new">{{ pkg_info.version }}</span>
-                                                                <span style="margin-left: 10px; color: #6c757d; font-size: 0.8rem;">({{ pkg_info.arch }})</span>
+                                            <div class="host-item-body collapsed">
+                                                <div class="host-details">
+                                                    {# Packages section #}
+                                                    {% if package_upgrades | length > 0 %}
+                                                    <div class="host-packages-section">
+                                                        <div class="host-section-title">📦 Package Updates ({{ package_upgrades | length }})</div>
+                                                        <table class="package-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Package</th>
+                                                                    <th>Old Version</th>
+                                                                    <th></th>
+                                                                    <th>New Version</th>
+                                                                    <th>Arch</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
+                                                                <tr>
+                                                                    <td><strong>{{ pkg_name }}</strong></td>
+                                                                    <td><code>{{ package_old_versions[pkg_name] | default('N/A') }}</code></td>
+                                                                    <td style="text-align: center; color: #667eea; font-weight: bold;">→</td>
+                                                                    <td><code>{{ pkg_info.version }}</code></td>
+                                                                    <td>{{ pkg_info.arch }}</td>
+                                                                </tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    {% else %}
+                                                    <div style="padding: 15px; text-align: center; color: #6c757d; font-style: italic;">
+                                                        No package updates detected in output
+                                                    </div>
+                                                    {% endif %}
+
+                                                    {# Errata section #}
+                                                    {% if host_errata_data | length > 0 %}
+                                                    <div class="host-errata-section">
+                                                        <div class="host-section-title">⚠️ Errata Applied ({{ host_errata_data | length }})</div>
+                                                        {% for erratum in host_errata_data[:10] %}
+                                                        <div class="errata-item {{ erratum.severity | lower }}">
+                                                            <div class="errata-title">{{ erratum.errata_id | default(erratum.id) }} - {{ erratum.title | default('No title') }}</div>
+                                                            <div class="errata-meta">
+                                                                <strong>Type:</strong> {{ erratum.type | default('N/A') }} |
+                                                                <strong>Severity:</strong> {{ erratum.severity | default('N/A') }} |
+                                                                <strong>Issued:</strong> {{ erratum.issued | default('N/A') }}
                                                             </div>
                                                         </div>
-                                                        <span class="package-status updated">✓ Updated</span>
+                                                        {% endfor %}
+                                                        {% if host_errata_data | length > 10 %}
+                                                        <div style="padding: 10px; text-align: center; color: #6c757d; font-size: 0.9rem;">
+                                                            ... and {{ host_errata_data | length - 10 }} more errata
+                                                        </div>
+                                                        {% endif %}
                                                     </div>
-                                                    {% endfor %}
+                                                    {% endif %}
                                                 </div>
                                             </div>
-
-                                            {# Show summary from "Upgraded:" section #}
-                                            {% if 'Upgraded:' in output_text %}
-                                            <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                                                <strong>✅ Summary:</strong>
-                                                <div style="margin-top: 5px; font-size: 0.9rem;">
-                                                    {% set upgraded_section = output_text.split('Upgraded:')[1].split('Complete!')[0] | trim %}
-                                                    {% set package_count = upgraded_section.split() | select('match', '.*-.*\..*') | list | length %}
-                                                    Successfully upgraded <strong>{{ package_count }}</strong> packages
-                                                </div>
-                                            </div>
-                                            {% endif %}
                                         </div>
-                                        {% endif %}
 
-                                        {% endif %}
                                         {% endif %}
                                         {% endfor %}
-
-                                        {% else %}
-                                        {# If no package data found, show message #}
-                                        <div class="package-item" style="text-align: center; padding: 20px; color: #6c757d;">
-                                            <em>No package update details captured in job output.</em>
-                                            <div style="margin-top: 10px; font-size: 0.85rem;">
-                                                Check Satellite UI → Monitor → Jobs → Job {{ job.id }} for full output.
-                                            </div>
-                                        </div>
-                                        {% endif %}
                                     </div>
-                                    {% endif %}
+
+                                    {% else %}
+                                    <div class="no-hosts-message">
+                                        No host output data available for this job.
+                                    </div>
                                     {% endif %}
                                 </div>
                             </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="no-results">
-                                <div class="no-results-icon">📭</div>
-                                <h3>No Patching Jobs Found</h3>
-                                <p>No patching activity in the last {{ patching_report_data.report_period_days }} days.</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-results">
+                            <div class="no-results-icon">📭</div>
+                            <h3>No Patching Jobs Found</h3>
+                            <p>No patching activity in the last {{ patching_report_data.report_period_days }} days.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -1096,6 +1376,73 @@
             const content = element.nextElementSibling;
             element.classList.toggle('expanded');
             content.classList.toggle('expanded');
+        }
+
+        // Toggle job card (expand/collapse hosts within a job)
+        function toggleJobCard(element) {
+            const header = element.classList.contains('job-card-header') ? element : element.closest('.job-card-header');
+            const body = header.nextElementSibling;
+
+            header.classList.toggle('collapsed');
+            body.classList.toggle('collapsed');
+        }
+
+        // Toggle individual host within a job
+        function toggleHost(element) {
+            const header = element.classList.contains('host-item-header') ? element : element.closest('.host-item-header');
+            const body = header.nextElementSibling;
+
+            header.classList.toggle('collapsed');
+            body.classList.toggle('collapsed');
+        }
+
+        // Search/filter hosts within a specific job
+        function searchHosts(input, jobId) {
+            const searchTerm = input.value.toLowerCase();
+            const hostsList = document.querySelector(`#hosts-list-${jobId}`);
+            const hostItems = hostsList.querySelectorAll('.host-item');
+
+            let visibleCount = 0;
+
+            hostItems.forEach(item => {
+                const hostname = item.dataset.hostname ? item.dataset.hostname.toLowerCase() : '';
+                const matches = hostname.includes(searchTerm);
+
+                if (matches) {
+                    item.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+
+            // Update visible count display
+            const countDisplay = document.querySelector(`#host-count-${jobId}`);
+            if (countDisplay) {
+                countDisplay.textContent = `${visibleCount} of ${hostItems.length}`;
+            }
+        }
+
+        // Expand all hosts in a job
+        function expandAllHosts(jobId) {
+            const hostsList = document.querySelector(`#hosts-list-${jobId}`);
+            const hostHeaders = hostsList.querySelectorAll('.host-item-header');
+
+            hostHeaders.forEach(header => {
+                header.classList.remove('collapsed');
+                header.nextElementSibling.classList.remove('collapsed');
+            });
+        }
+
+        // Collapse all hosts in a job
+        function collapseAllHosts(jobId) {
+            const hostsList = document.querySelector(`#hosts-list-${jobId}`);
+            const hostHeaders = hostsList.querySelectorAll('.host-item-header');
+
+            hostHeaders.forEach(header => {
+                header.classList.add('collapsed');
+                header.nextElementSibling.classList.add('collapsed');
+            });
         }
 
         // Calculate success rate
