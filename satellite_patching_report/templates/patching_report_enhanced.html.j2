@@ -702,8 +702,13 @@
                     <label for="filterContentView">Content View</label>
                     <select id="filterContentView">
                         <option value="">All Content Views</option>
-                        {% for job in patching_report_data.jobs | unique(attribute='content_view') %}
-                        <option value="{{ job.content_view | default('unknown') }}">{{ job.content_view | default('Unknown') }}</option>
+                        {% set cv_list = [] %}
+                        {% for job in patching_report_data.jobs %}
+                            {% set cv_value = job.content_view | default('unknown') %}
+                            {% if cv_value not in cv_list %}
+                                {% set _ = cv_list.append(cv_value) %}
+                                <option value="{{ cv_value }}">{{ cv_value if cv_value != 'unknown' else 'Unknown' }}</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
