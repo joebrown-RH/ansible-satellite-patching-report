@@ -1,0 +1,21 @@
+---
+# S3 upload tasks - requires amazon.aws collection
+# Only included when persist_to_s3 is enabled
+
+- name: Upload reports to S3
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket }}"
+    object: "satellite_reports/{{ item | basename }}"
+    src: "{{ item }}"
+    mode: put
+    region: "{{ s3_region }}"
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  register: s3_upload
+
+- name: Display S3 upload information
+  ansible.builtin.debug:
+    msg:
+      - "Reports uploaded to S3 bucket: {{ s3_bucket }}"
+      - "Files: {{ generated_report_files | map('basename') | list }}"
+  when: s3_upload is changed

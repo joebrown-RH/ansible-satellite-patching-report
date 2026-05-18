@@ -1,0 +1,30 @@
+---
+# NFS upload tasks - requires ansible.posix collection
+# Only included when persist_to_nfs is enabled
+
+- name: Mount NFS share
+  ansible.posix.mount:
+    path: "{{ nfs_mount_path }}"
+    src: "{{ nfs_server }}:{{ nfs_export_path }}"
+    fstype: nfs
+    state: mounted
+  delegate_to: localhost
+
+- name: Create satellite_reports directory on NFS
+  ansible.builtin.file:
+    path: "{{ nfs_mount_path }}/satellite_reports"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+
+- name: Copy reports to NFS share
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ nfs_mount_path }}/satellite_reports/{{ item | basename }}"
+    mode: '0644'
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+
+- name: Display NFS upload information
+  ansible.builtin.debug:
+    msg: "Reports copied to NFS: {{ nfs_mount_path }}/satellite_reports/"
