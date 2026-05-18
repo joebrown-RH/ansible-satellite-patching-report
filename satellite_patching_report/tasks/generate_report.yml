@@ -50,6 +50,23 @@
   delegate_to: localhost
   when: patching_jobs | length > 0
 
+- name: Get job outputs to capture package changes
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/job_invocations/{{ item.id }}/outputs"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: [200, 404]
+  loop: "{{ patching_jobs }}"
+  register: job_outputs
+  delegate_to: localhost
+  when: patching_jobs | length > 0
+  ignore_errors: true
+
 - name: Query Satellite for errata applied
   ansible.builtin.uri:
     url: "https://{{ satellite_server }}/katello/api/errata?per_page=1000"
@@ -86,6 +103,7 @@
       total_jobs: "{{ patching_jobs | length }}"
       jobs: "{{ patching_jobs | default([]) }}"
       job_details: "{{ job_details.results | default([]) }}"
+      job_outputs: "{{ job_outputs.results | default([]) }}"
       errata: "{{ satellite_errata.json.results | default([]) }}"
       hosts: "{{ satellite_hosts.json.results | default([]) }}"
 

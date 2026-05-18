@@ -384,6 +384,155 @@
             font-weight: 500;
         }
 
+        /* Package Details Expandable Section */
+        .package-details-toggle {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .package-details-toggle:hover {
+            background: #e9ecef;
+        }
+
+        .package-details-toggle-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .package-count-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        .toggle-arrow {
+            transition: transform 0.3s;
+            font-size: 1.2rem;
+        }
+
+        .package-details-toggle.expanded .toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        .package-details-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .package-details-content.expanded {
+            max-height: 2000px;
+        }
+
+        .package-list {
+            margin-top: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .package-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        .package-item:last-child {
+            border-bottom: none;
+        }
+
+        .package-item:hover {
+            background: #f8f9fa;
+        }
+
+        .package-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .package-versions {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .version-arrow {
+            margin: 0 8px;
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .version-old {
+            color: #dc3545;
+        }
+
+        .version-new {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .package-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .package-status.updated {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .package-status.installed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .package-status.removed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .output-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--info-color);
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .output-section pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         .no-results {
             text-align: center;
             padding: 60px 20px;
@@ -613,6 +762,49 @@
                                             <span class="host-meta-value">{{ job.id }}</span>
                                         </div>
                                     </div>
+
+                                    {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+                                    {% if job_output and job_output.json is defined and job_output.json.outputs is defined %}
+                                    <div class="package-details-toggle" onclick="togglePackageDetails(this)">
+                                        <div class="package-details-toggle-text">
+                                            📦 Package Updates
+                                            <span class="package-count-badge">View Details</span>
+                                        </div>
+                                        <span class="toggle-arrow">▼</span>
+                                    </div>
+                                    <div class="package-details-content">
+                                        <div class="output-section">
+                                            <strong>Job Output:</strong>
+                                            <pre>{{ job_output.json.outputs | first | default('No output available') }}</pre>
+                                        </div>
+                                    </div>
+                                    {% elif patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first is defined %}
+                                    {% set job_detail = patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first %}
+                                    {% if job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0 %}
+                                    <div class="package-details-toggle" onclick="togglePackageDetails(this)">
+                                        <div class="package-details-toggle-text">
+                                            📦 Job Information
+                                            <span class="package-count-badge">View Details</span>
+                                        </div>
+                                        <span class="toggle-arrow">▼</span>
+                                    </div>
+                                    <div class="package-details-content">
+                                        <div class="package-list">
+                                            {% for template in job_detail.json.template_invocations %}
+                                            <div class="package-item">
+                                                <div>
+                                                    <div class="package-name">{{ template.template_name | default('Action') }}</div>
+                                                    <div class="package-versions">{{ template.input_values | default({}) | tojson }}</div>
+                                                </div>
+                                                <span class="package-status {{ 'updated' if template.template_name else 'installed' }}">
+                                                    ✓ Executed
+                                                </span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
@@ -854,6 +1046,13 @@
 
             section.classList.toggle('hidden');
             header.classList.toggle('collapsed');
+        }
+
+        // Toggle package details
+        function togglePackageDetails(element) {
+            const content = element.nextElementSibling;
+            element.classList.toggle('expanded');
+            content.classList.toggle('expanded');
         }
 
         // Calculate success rate
