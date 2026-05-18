@@ -2,28 +2,57 @@
 # This file demonstrates multiple methods to persist files generated in ephemeral execution environments
 # Choose the method(s) that work best for your environment
 
-- name: Copy reports to AAP artifact directory
+- name: Debug artifact directory configuration
+  ansible.builtin.debug:
+    msg:
+      - "use_aap_artifacts: {{ use_aap_artifacts }}"
+      - "Target artifact directory: /runner/artifacts"
+      - "Report timestamp: {{ report_timestamp }}"
+      - "Generated report files: {{ generated_report_files }}"
+  when: use_aap_artifacts | bool
+
+- name: Ensure AAP artifact directory exists
+  ansible.builtin.file:
+    path: "/runner/artifacts"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  when: use_aap_artifacts | bool
+
+- name: Copy reports to AAP artifact directory (base path for AAP 2.x)
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "{{ aap_artifact_dir }}/{{ item | basename }}"
+    dest: "/runner/artifacts/{{ report_timestamp }}_{{ item | basename }}"
     mode: '0644'
   loop: "{{ generated_report_files }}"
   delegate_to: localhost
   when:
     - use_aap_artifacts | bool
-    - aap_artifact_dir is defined
-    - aap_artifact_dir | length > 0
   register: artifact_copy
+
+- name: Register artifacts with AAP (for AAP 2.x UI display)
+  ansible.builtin.set_stats:
+    data:
+      artifacts:
+        html_report: "/runner/artifacts/{{ report_timestamp }}_{{ generated_report_files[0] | basename }}"
+        csv_report: "/runner/artifacts/{{ report_timestamp }}_{{ generated_report_files[1] | basename }}"
+    per_host: false
+  when:
+    - use_aap_artifacts | bool
+    - artifact_copy is changed
+  delegate_to: localhost
 
 - name: Display AAP artifact information
   ansible.builtin.debug:
     msg:
-      - "Reports copied to AAP artifact directory: {{ aap_artifact_dir }}"
-      - "These files will be preserved after job completion and accessible via AAP UI"
-      - "Download from: Job Details -> Output -> Artifacts tab"
+      - "Reports copied to AAP artifact directory: /runner/artifacts/"
+      - "HTML Report: {{ report_timestamp }}_{{ generated_report_files[0] | basename }}"
+      - "CSV Report: {{ report_timestamp }}_{{ generated_report_files[1] | basename }}"
+      - "Files are preserved and should be accessible via AAP UI"
+      - "Check: Job Details -> Output (scroll down for artifact links)"
   when:
-    - artifact_copy is changed
     - use_aap_artifacts | bool
+    - artifact_copy is changed
 
 - name: Include S3 upload tasks
   ansible.builtin.include_tasks: upload_s3.yml

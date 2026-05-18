@@ -36,8 +36,9 @@ send_to_webhook: false
 webhook_url: ""
 
 # Option 4: AAP artifact directory (automatically preserved by AAP)
+# For AAP 2.x, files must be in /runner/artifacts/ (base directory, not subdirectories)
 use_aap_artifacts: true
-aap_artifact_dir: "{{ lookup('env', 'AWX_ISOLATED_DATA_DIR') | default('/runner/artifacts') }}"
+aap_artifact_dir: "/runner/artifacts"
 
 # Filter options
 filter_organization: ""
