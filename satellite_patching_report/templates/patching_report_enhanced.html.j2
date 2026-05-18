@@ -784,68 +784,71 @@
                                     <div class="package-details-content">
                                         {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
 
-                                        {# Show available data from job_detail #}
-                                        {% if job_detail.json is defined %}
-                                        <div style="margin-bottom: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #17a2b8; border-radius: 4px;">
-                                            <strong>📋 Job Information:</strong>
-                                            <div style="margin-top: 8px; font-size: 0.85rem;">
-                                                {% if job_detail.json.description is defined %}
-                                                <div><strong>Description:</strong> {{ job_detail.json.description }}</div>
-                                                {% endif %}
-                                                {% if job_detail.json.targeting is defined and job_detail.json.targeting.search_query is defined %}
-                                                <div><strong>Targets:</strong> {{ job_detail.json.targeting.search_query }}</div>
-                                                {% endif %}
-                                                {% if job_detail.json.succeeded is defined %}
-                                                <div><strong>Status:</strong> {{ 'Success' if job_detail.json.succeeded else 'Failed' }}</div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        {% endif %}
 
-                                        {# Show errata if available #}
-                                        {% if job_detail.json.input_values is defined and job_detail.json.input_values is mapping %}
-                                        <div style="margin-bottom: 15px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                                            <strong>📌 Input Parameters:</strong>
-                                            <div style="margin-top: 8px; font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap;">{{ job_detail.json.input_values | tojson(indent=2) }}</div>
-                                        </div>
-                                        {% endif %}
-
-                                        {# Show job output if available #}
-                                        {% if job_output and job_output.json is defined %}
-                                        <div style="margin-bottom: 15px; padding: 12px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
-                                            <strong>📝 Job Output Preview:</strong>
-                                            <div style="margin-top: 8px; font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; background: white; padding: 10px; border-radius: 4px;">{{ job_output.json | tojson(indent=2) }}</div>
-                                        </div>
-                                        {% endif %}
-
-                                        {# Template invocations - shows what actions were executed #}
-                                        {% if job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0 %}
-                                        <div style="padding: 12px; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px;">
-                                            <strong>🔧 Actions Executed:</strong>
-                                            <div style="margin-top: 8px;">
-                                                {% for template in job_detail.json.template_invocations %}
-                                                <div style="margin-bottom: 10px; padding: 8px; background: white; border-radius: 4px;">
-                                                    <div style="font-weight: 600;">{{ template.template_name | default('Unnamed Action') }}</div>
-                                                    {% if template.input_values is defined %}
-                                                    <div style="font-size: 0.85rem; margin-top: 4px; font-family: 'Courier New', monospace;">
-                                                        {{ template.input_values | tojson }}
-                                                    </div>
+                                        {# Show parsed package updates from job output #}
+                                        {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
+                                        {% set full_output = [] %}
+                                        {% for host_output in job_output.json.outputs %}
+                                            {% if host_output.output is defined %}
+                                                {% for line_obj in host_output.output %}
+                                                    {% if line_obj.output is defined %}
+                                                        {% set _ = full_output.append(line_obj.output) %}
                                                     {% endif %}
-                                                </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% set output_text = full_output | join('') %}
+
+                                        {# Parse package updates from DNF/YUM output #}
+                                        {% if 'Upgrading:' in output_text or 'Installing:' in output_text %}
+                                        <div style="margin-bottom: 15px; padding: 12px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
+                                            <strong>📦 Package Updates:</strong>
+                                            <div class="package-list" style="margin-top: 10px;">
+                                                {% for line in output_text.split('\n') %}
+                                                    {# Match package upgrade lines in transaction table #}
+                                                    {% if line | trim and not line.startswith('=') and not line.startswith('-') and not line.startswith('Transaction') and not line.startswith('Total') %}
+                                                        {% set parts = line.split() %}
+                                                        {# Detect lines like: gnutls x86_64 3.8.10-3.el10_1 rhel-10-... #}
+                                                        {% if parts | length >= 4 and (parts[0] not in ['Package', 'Upgrade', 'Install', 'Upgrading:', 'Installing:', 'Downloading', 'Running', 'Preparing', 'Cleanup', 'Installed', 'Upgraded:', 'Complete!', 'Red', 'Dependencies', 'Updating']) %}
+                                                            {% if parts[1] in ['x86_64', 'noarch', 'i686', 'aarch64'] and '.' in parts[2] %}
+                                                            <div class="package-item">
+                                                                <div>
+                                                                    <div class="package-name">{{ parts[0] }}</div>
+                                                                    <div class="package-versions">
+                                                                        <span class="version-new">{{ parts[2] }}</span>
+                                                                        <span style="margin-left: 10px; color: #6c757d; font-size: 0.8rem;">({{ parts[1] }})</span>
+                                                                    </div>
+                                                                </div>
+                                                                <span class="package-status updated">✓ Updated</span>
+                                                            </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endif %}
                                                 {% endfor %}
                                             </div>
                                         </div>
+
+                                        {# Show summary from "Upgraded:" section #}
+                                        {% if 'Upgraded:' in output_text %}
+                                        <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                                            <strong>✅ Summary:</strong>
+                                            <div style="margin-top: 5px; font-size: 0.9rem;">
+                                                {% set upgraded_section = output_text.split('Upgraded:')[1].split('Complete!')[0] | trim %}
+                                                {% set package_count = upgraded_section.split() | select('match', '.*-.*\..*') | list | length %}
+                                                Successfully upgraded <strong>{{ package_count }}</strong> packages
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endif %}
                                         {% endif %}
 
-                                        {# If nothing is available #}
-                                        {% set has_input_values = job_detail.json.input_values is defined and job_detail.json.input_values %}
-                                        {% set has_output = job_output and job_output.json is defined %}
-                                        {% set has_templates = job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0 %}
-                                        {% if not has_input_values and not has_output and not has_templates %}
+                                        {# If no package data found, show message #}
+                                        {% set has_output = job_output and job_output.json is defined and job_output.json.outputs is defined %}
+                                        {% if not has_output or ('Upgrading:' not in output_text and 'Installing:' not in output_text) %}
                                         <div class="package-item" style="text-align: center; padding: 20px; color: #6c757d;">
-                                            <em>No detailed package information available from Satellite API for this job.</em>
+                                            <em>No package update details captured in job output.</em>
                                             <div style="margin-top: 10px; font-size: 0.85rem;">
-                                                Job ID: {{ job.id }} - Check Satellite UI for detailed package changes.
+                                                Check Satellite UI → Monitor → Jobs → Job {{ job.id }} for full output.
                                             </div>
                                         </div>
                                         {% endif %}
