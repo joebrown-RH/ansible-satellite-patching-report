@@ -581,7 +581,7 @@
                 </div>
                 <div class="section-content" id="jobsSection">
                     <div id="jobsList">
-                        {% if patching_report_data.total_jobs > 0 %}
+                        {% if patching_report_data.total_jobs | int > 0 %}
                             {% for job in patching_report_data.jobs %}
                             <div class="host-card"
                                  data-hostname="{{ job.targeting.search_query | default('unknown') | lower }}"
@@ -858,7 +858,7 @@
 
         // Calculate success rate
         function calculateSuccessRate() {
-            const totalJobs = {{ patching_report_data.total_jobs }};
+            const totalJobs = {{ patching_report_data.total_jobs | int }};
             if (totalJobs === 0) {
                 document.getElementById('successRate').textContent = 'N/A';
                 return;
