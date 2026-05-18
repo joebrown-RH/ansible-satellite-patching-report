@@ -1,0 +1,140 @@
+---
+- name: Set report date range
+  ansible.builtin.set_fact:
+    report_start_date: "{{ (ansible_date_time.epoch | int - (report_days_back * 86400)) | int }}"
+    report_end_date: "{{ ansible_date_time.epoch }}"
+    report_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+- name: Create local report output directory
+  ansible.builtin.file:
+    path: "{{ report_output_dir }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+
+- name: Query Satellite for patching jobs (remote execution jobs)
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/job_invocations"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    body_format: json
+    status_code: 200
+  register: satellite_jobs
+  delegate_to: localhost
+
+- name: Filter patching jobs by date and type
+  ansible.builtin.set_fact:
+    patching_jobs: "{{ satellite_jobs.json.results |
+      selectattr('job_category', 'equalto', 'Katello') |
+      selectattr('description', 'search', '[Pp]atch|[Uu]pdate|[Ee]rrata') |
+      list }}"
+
+- name: Get detailed information for each patching job
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/job_invocations/{{ item.id }}"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: 200
+  loop: "{{ patching_jobs }}"
+  register: job_details
+  delegate_to: localhost
+  when: patching_jobs | length > 0
+
+- name: Query Satellite for errata applied
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/errata?search=issued>=\"{{ report_days_back }} days ago\""
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: 200
+  register: satellite_errata
+  delegate_to: localhost
+
+- name: Query Satellite for host collections
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/hosts"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: 200
+  register: satellite_hosts
+  delegate_to: localhost
+
+- name: Build patching report data structure
+  ansible.builtin.set_fact:
+    patching_report_data:
+      report_generated: "{{ ansible_date_time.iso8601 }}"
+      report_period_days: "{{ report_days_back }}"
+      total_jobs: "{{ patching_jobs | length }}"
+      jobs: "{{ patching_jobs | default([]) }}"
+      job_details: "{{ job_details.results | default([]) }}"
+      errata: "{{ satellite_errata.json.results | default([]) }}"
+      hosts: "{{ satellite_hosts.json.results | default([]) }}"
+
+- name: Query package updates for each host
+  ansible.builtin.uri:
+    url: "https://{{ satellite_server }}/api/v2/hosts/{{ item.id }}/packages"
+    method: GET
+    user: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs }}"
+    headers:
+      Accept: "application/json"
+    status_code: 200
+  loop: "{{ satellite_hosts.json.results }}"
+  register: host_packages
+  delegate_to: localhost
+  when: satellite_hosts.json.results | length > 0
+
+- name: Add package details to report data
+  ansible.builtin.set_fact:
+    patching_report_data: "{{ patching_report_data | combine({'host_packages': host_packages.results | default([])}) }}"
+
+- name: Generate HTML report
+  ansible.builtin.template:
+    src: patching_report.html.j2
+    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}_{{ report_timestamp }}.html"
+    mode: '0644'
+  delegate_to: localhost
+  when: report_format in ['html', 'both']
+  register: html_report
+
+- name: Generate CSV report
+  ansible.builtin.template:
+    src: patching_report.csv.j2
+    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}_{{ report_timestamp }}.csv"
+    mode: '0644'
+  delegate_to: localhost
+  when: report_format in ['csv', 'both']
+  register: csv_report
+
+- name: Display report location
+  ansible.builtin.debug:
+    msg:
+      - "Patching reports generated successfully!"
+      - "HTML Report: {{ html_report.dest | default('Not generated') }}"
+      - "CSV Report: {{ csv_report.dest | default('Not generated') }}"
+      - "Total patching jobs found: {{ patching_jobs | length }}"
+
+- name: Set report files fact for persistence tasks
+  ansible.builtin.set_fact:
+    generated_report_files: "{{ [html_report.dest | default(None), csv_report.dest | default(None)] | select() | list }}"

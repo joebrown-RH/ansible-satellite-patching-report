@@ -1,0 +1,41 @@
+---
+- name: Generate Satellite Patching Report (Full Options)
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    - role: satellite_patching_report
+      vars:
+        # Satellite connection (set these in AAP as credentials or extra vars)
+        satellite_server: "{{ satellite_url | default(lookup('env', 'SATELLITE_SERVER')) }}"
+        satellite_username: "{{ satellite_user | default(lookup('env', 'SATELLITE_USERNAME')) }}"
+        satellite_password: "{{ satellite_pass | default(lookup('env', 'SATELLITE_PASSWORD')) }}"
+        satellite_validate_certs: false
+
+        # Report configuration
+        report_days_back: 30  # Look back 30 days
+        report_format: "both"  # Generate both HTML and CSV
+
+        # AAP artifacts - reports will be available in AAP UI
+        use_aap_artifacts: true
+
+        # Optional: Email the report to stakeholders
+        # Uncomment and configure to enable email delivery
+        # email_report: true
+        # email_to:
+        #   - ops-team@example.com
+        #   - manager@example.com
+        # email_from: "ansible-automation@example.com"
+        # smtp_host: "smtp.example.com"
+        # smtp_port: 587
+
+        # Optional: Persist to S3 for long-term storage
+        # Uncomment and configure to enable S3 upload
+        # persist_to_s3: true
+        # s3_bucket: "satellite-reports"
+        # s3_region: "us-east-1"
+
+        # Optional: Filter by organization, content view, or lifecycle environment
+        # filter_organization: "MyOrg"
+        # filter_content_view: "RHEL8-Production"
+        # filter_lifecycle_env: "Production"

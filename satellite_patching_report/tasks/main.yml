@@ -1,0 +1,20 @@
+---
+- name: Satellite Patching Report - Main Tasks
+  block:
+    - name: Include report generation tasks
+      ansible.builtin.include_tasks: generate_report.yml
+
+    - name: Include persistence tasks
+      ansible.builtin.include_tasks: persist_report.yml
+      when: >
+        persist_to_s3 | bool or
+        persist_to_nfs | bool or
+        persist_to_git | bool or
+        email_report | bool or
+        send_to_webhook | bool or
+        use_aap_artifacts | bool
+
+  rescue:
+    - name: Report generation failed
+      ansible.builtin.fail:
+        msg: "Satellite patching report generation failed: {{ ansible_failed_result.msg }}"

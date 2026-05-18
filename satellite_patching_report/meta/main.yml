@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  author: Ansible Automation
+  description: Generate comprehensive patching reports from Red Hat Satellite with multiple persistence options for ephemeral execution environments
+  company: Red Hat
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+
+  galaxy_tags:
+    - satellite
+    - reporting
+    - patching
+    - rhel
+    - automation
+
+dependencies: []
+
+collections:
+  - ansible.builtin
+  - community.general
+  - amazon.aws
+  - ansible.posix

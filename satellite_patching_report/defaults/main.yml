@@ -1,0 +1,45 @@
+---
+# Satellite server connection details
+satellite_server: "{{ lookup('env', 'SATELLITE_SERVER') | default('satellite.example.com') }}"
+satellite_username: "{{ lookup('env', 'SATELLITE_USERNAME') | default('admin') }}"
+satellite_password: "{{ lookup('env', 'SATELLITE_PASSWORD') | default('') }}"
+satellite_validate_certs: false
+
+# Report parameters
+report_days_back: 7  # How many days back to query for patching jobs
+report_format: "both"  # Options: html, csv, both
+report_output_dir: "/tmp/satellite_reports"
+report_filename_prefix: "satellite_patching_report"
+
+# Persistence options for ephemeral execution environments
+# Option 1: Store to external location (recommended)
+persist_to_s3: false
+s3_bucket: ""
+s3_region: "us-east-1"
+
+persist_to_nfs: false
+nfs_mount_path: ""
+
+persist_to_git: false
+git_repo_url: ""
+git_branch: "main"
+
+# Option 2: Email the report
+email_report: false
+email_to: []
+email_from: "ansible@example.com"
+smtp_host: "localhost"
+smtp_port: 25
+
+# Option 3: Send to webhook/API
+send_to_webhook: false
+webhook_url: ""
+
+# Option 4: AAP artifact directory (automatically preserved by AAP)
+use_aap_artifacts: true
+aap_artifact_dir: "{{ lookup('env', 'AWX_ISOLATED_DATA_DIR') | default('/runner/artifacts') }}"
+
+# Filter options
+filter_organization: ""
+filter_content_view: ""
+filter_lifecycle_env: ""

@@ -1,0 +1,157 @@
+---
+# This file demonstrates multiple methods to persist files generated in ephemeral execution environments
+# Choose the method(s) that work best for your environment
+
+- name: Copy reports to AAP artifact directory
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ aap_artifact_dir }}/{{ item | basename }}"
+    mode: '0644'
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - use_aap_artifacts | bool
+    - aap_artifact_dir is defined
+    - aap_artifact_dir | length > 0
+  register: artifact_copy
+
+- name: Display AAP artifact information
+  ansible.builtin.debug:
+    msg:
+      - "Reports copied to AAP artifact directory: {{ aap_artifact_dir }}"
+      - "These files will be preserved after job completion and accessible via AAP UI"
+      - "Download from: Job Details -> Output -> Artifacts tab"
+  when:
+    - artifact_copy is changed
+    - use_aap_artifacts | bool
+
+- name: Upload reports to S3
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket }}"
+    object: "satellite_reports/{{ item | basename }}"
+    src: "{{ item }}"
+    mode: put
+    region: "{{ s3_region }}"
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - persist_to_s3 | bool
+    - s3_bucket | length > 0
+  register: s3_upload
+
+- name: Display S3 upload information
+  ansible.builtin.debug:
+    msg:
+      - "Reports uploaded to S3 bucket: {{ s3_bucket }}"
+      - "Files: {{ generated_report_files | map('basename') | list }}"
+  when:
+    - s3_upload is changed
+    - persist_to_s3 | bool
+
+- name: Mount NFS share
+  ansible.posix.mount:
+    path: "{{ nfs_mount_path }}"
+    src: "{{ nfs_server }}:{{ nfs_export_path }}"
+    fstype: nfs
+    state: mounted
+  delegate_to: localhost
+  when:
+    - persist_to_nfs | bool
+    - nfs_mount_path | length > 0
+
+- name: Copy reports to NFS share
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ nfs_mount_path }}/satellite_reports/{{ item | basename }}"
+    mode: '0644'
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - persist_to_nfs | bool
+    - nfs_mount_path | length > 0
+
+- name: Clone git repository for report storage
+  ansible.builtin.git:
+    repo: "{{ git_repo_url }}"
+    dest: "/tmp/report_git_repo"
+    version: "{{ git_branch }}"
+    force: true
+  delegate_to: localhost
+  when:
+    - persist_to_git | bool
+    - git_repo_url | length > 0
+
+- name: Copy reports to git repository
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/tmp/report_git_repo/reports/{{ item | basename }}"
+    mode: '0644'
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - persist_to_git | bool
+    - git_repo_url | length > 0
+
+- name: Commit and push reports to git
+  ansible.builtin.shell: |
+    cd /tmp/report_git_repo
+    git config user.name "Ansible Automation"
+    git config user.email "ansible@example.com"
+    git add reports/
+    git commit -m "Add satellite patching reports - {{ ansible_date_time.iso8601 }}"
+    git push origin {{ git_branch }}
+  delegate_to: localhost
+  when:
+    - persist_to_git | bool
+    - git_repo_url | length > 0
+  register: git_push
+  changed_when: "'nothing to commit' not in git_push.stdout"
+
+- name: Email the reports
+  community.general.mail:
+    host: "{{ smtp_host }}"
+    port: "{{ smtp_port }}"
+    from: "{{ email_from }}"
+    to: "{{ email_to }}"
+    subject: "Satellite Patching Report - {{ ansible_date_time.date }}"
+    body: |
+      Satellite Patching Report for the last {{ report_days_back }} days.
+
+      Report generated: {{ ansible_date_time.iso8601 }}
+      Total patching jobs: {{ patching_report_data.total_jobs }}
+
+      Please see attached reports for details.
+    attach: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - email_report | bool
+    - email_to | length > 0
+
+- name: Send reports to webhook/API
+  ansible.builtin.uri:
+    url: "{{ webhook_url }}"
+    method: POST
+    body_format: json
+    body:
+      timestamp: "{{ ansible_date_time.iso8601 }}"
+      report_type: "satellite_patching"
+      report_period_days: "{{ report_days_back }}"
+      total_jobs: "{{ patching_report_data.total_jobs }}"
+      reports:
+        - name: "{{ item | basename }}"
+          content: "{{ lookup('file', item) | b64encode }}"
+    status_code: [200, 201, 202]
+    headers:
+      Content-Type: "application/json"
+  loop: "{{ generated_report_files }}"
+  delegate_to: localhost
+  when:
+    - send_to_webhook | bool
+    - webhook_url | length > 0
+
+- name: Display webhook upload information
+  ansible.builtin.debug:
+    msg: "Reports sent to webhook: {{ webhook_url }}"
+  when:
+    - send_to_webhook | bool
+    - webhook_url | length > 0

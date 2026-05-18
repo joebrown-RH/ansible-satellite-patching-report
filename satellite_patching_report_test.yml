@@ -1,0 +1,20 @@
+---
+- name: Generate Satellite Patching Report
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    - role: satellite_patching_report
+      vars:
+        # Satellite connection (these should be set in AAP as credentials or extra vars)
+        satellite_server: "{{ satellite_url | default(lookup('env', 'SATELLITE_SERVER')) }}"
+        satellite_username: "{{ satellite_user | default(lookup('env', 'SATELLITE_USERNAME')) }}"
+        satellite_password: "{{ satellite_pass | default(lookup('env', 'SATELLITE_PASSWORD')) }}"
+        satellite_validate_certs: false
+
+        # Report configuration
+        report_days_back: 7
+        report_format: "both"  # Generate both HTML and CSV
+
+        # AAP artifacts - reports will be available in AAP UI after job completes
+        use_aap_artifacts: true

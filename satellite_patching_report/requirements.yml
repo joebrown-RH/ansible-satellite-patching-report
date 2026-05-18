@@ -1,0 +1,18 @@
+---
+# Collection requirements for satellite_patching_report role
+# Install with: ansible-galaxy collection install -r requirements.yml
+
+collections:
+  - name: ansible.builtin
+    version: ">=2.10"
+
+  - name: community.general
+    version: ">=3.0.0"
+
+  # Optional: Only needed if using S3 persistence
+  - name: amazon.aws
+    version: ">=5.0.0"
+
+  # Optional: Only needed if using NFS persistence
+  - name: ansible.posix
+    version: ">=1.3.0"

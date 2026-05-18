@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Hat Satellite Patching Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Red Hat Display', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ee0000 0%, #cc0000 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #ee0000;
+        }
+
+        .summary-card h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ee0000;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #ee0000;
+            border-bottom: 2px solid #ee0000;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background: #ee0000;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .version-change {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .arrow {
+            color: #ee0000;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Red Hat Satellite Patching Report</h1>
+            <p>Generated: {{ patching_report_data.report_generated }}</p>
+            <p>Report Period: Last {{ patching_report_data.report_period_days }} days</p>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Total Patching Jobs</h3>
+                <div class="value">{{ patching_report_data.total_jobs }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Hosts Managed</h3>
+                <div class="value">{{ patching_report_data.hosts | length }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Errata Applied</h3>
+                <div class="value">{{ patching_report_data.errata | length }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Report Date</h3>
+                <div class="value" style="font-size: 1.2em;">{{ ansible_date_time.date }}</div>
+            </div>
+        </div>
+
+        <div class="content">
+            {% if patching_report_data.jobs | length > 0 %}
+            <div class="section">
+                <h2>Patching Jobs Summary</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Job ID</th>
+                            <th>Description</th>
+                            <th>Initiated By</th>
+                            <th>Start Time</th>
+                            <th>Status</th>
+                            <th>Hosts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in patching_report_data.jobs %}
+                        <tr>
+                            <td>{{ job.id }}</td>
+                            <td>{{ job.description | default('N/A') }}</td>
+                            <td>{{ job.triggering.user_login | default(job.ssh_user | default('Unknown')) }}</td>
+                            <td>{{ job.start_at | default('N/A') }}</td>
+                            <td class="status-{{ job.status | lower }}">{{ job.status | upper }}</td>
+                            <td>{{ job.targeting.hosts | default([]) | length }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if patching_report_data.job_details | length > 0 %}
+            <div class="section">
+                <h2>Detailed Patching Information</h2>
+                {% for job_result in patching_report_data.job_details %}
+                {% set job = job_result.json %}
+                <div style="margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #ee0000; margin-bottom: 15px;">
+                        Job #{{ job.id }}: {{ job.description | default('Patching Job') }}
+                    </h3>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <strong>Initiated By:</strong><br>
+                            {{ job.triggering.user_login | default(job.ssh_user | default('System')) }}
+                        </div>
+                        <div>
+                            <strong>Start Time:</strong><br>
+                            {{ job.start_at | default('N/A') }}
+                        </div>
+                        <div>
+                            <strong>End Time:</strong><br>
+                            {{ job.end_at | default('In Progress') }}
+                        </div>
+                        <div>
+                            <strong>Status:</strong><br>
+                            <span class="status-{{ job.status | lower }}">{{ job.status | upper }}</span>
+                        </div>
+                    </div>
+
+                    {% if job.targeting is defined %}
+                    <div>
+                        <strong>Target Hosts:</strong><br>
+                        {{ job.targeting.hosts | default([]) | join(', ') | default('N/A') }}
+                    </div>
+                    {% endif %}
+
+                    {% if job.template_invocations is defined and job.template_invocations | length > 0 %}
+                    <div style="margin-top: 15px;">
+                        <strong>Content View:</strong> {{ job.template_invocations[0].template_name | default('N/A') }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if patching_report_data.errata | length > 0 %}
+            <div class="section">
+                <h2>Errata Applied</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Errata ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Severity</th>
+                            <th>Issued Date</th>
+                            <th>Packages</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for erratum in patching_report_data.errata %}
+                        <tr>
+                            <td>{{ erratum.errata_id | default(erratum.id) }}</td>
+                            <td>{{ erratum.title | default('N/A') }}</td>
+                            <td>{{ erratum.type | default('N/A') }}</td>
+                            <td>{{ erratum.severity | default('N/A') }}</td>
+                            <td>{{ erratum.issued | default('N/A') }}</td>
+                            <td>{{ erratum.packages | default([]) | length }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if patching_report_data.host_packages | length > 0 %}
+            <div class="section">
+                <h2>Package Updates by Host</h2>
+                {% for host_pkg in patching_report_data.host_packages %}
+                {% if host_pkg.json.results is defined and host_pkg.json.results | length > 0 %}
+                <h3 style="color: #333; margin-top: 25px; margin-bottom: 15px;">
+                    Host: {{ host_pkg.item.name | default('Unknown') }}
+                </h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Package Name</th>
+                            <th>Previous Version</th>
+                            <th></th>
+                            <th>New Version</th>
+                            <th>Architecture</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for package in host_pkg.json.results[:20] %}
+                        <tr>
+                            <td>{{ package.name }}</td>
+                            <td class="version-change">{{ package.version | default('N/A') }}</td>
+                            <td class="arrow">→</td>
+                            <td class="version-change">{{ package.nvra | default(package.version | default('N/A')) }}</td>
+                            <td>{{ package.arch | default('N/A') }}</td>
+                            <td>{{ package.upgradable | default(false) | ternary('Upgradable', 'Current') }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if host_pkg.json.results | length > 20 %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; font-style: italic; color: #666;">
+                                ... and {{ host_pkg.json.results | length - 20 }} more packages
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if patching_report_data.hosts | length > 0 %}
+            <div class="section">
+                <h2>Host Summary</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hostname</th>
+                            <th>Operating System</th>
+                            <th>Content View</th>
+                            <th>Lifecycle Environment</th>
+                            <th>Last Checkin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for host in patching_report_data.hosts %}
+                        <tr>
+                            <td>{{ host.name }}</td>
+                            <td>{{ host.operatingsystem_name | default('N/A') }}</td>
+                            <td>{{ host.content_facet_attributes.content_view_name | default('N/A') }}</td>
+                            <td>{{ host.content_facet_attributes.lifecycle_environment_name | default('N/A') }}</td>
+                            <td>{{ host.last_report | default('Never') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if patching_report_data.total_jobs == 0 %}
+            <div class="no-data">
+                <p>No patching jobs found in the last {{ patching_report_data.report_period_days }} days.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Generated by Ansible Automation Platform | Red Hat Satellite Patching Report</p>
+            <p>Report Timestamp: {{ patching_report_data.report_generated }}</p>
+        </div>
+    </div>
+</body>
+</html>

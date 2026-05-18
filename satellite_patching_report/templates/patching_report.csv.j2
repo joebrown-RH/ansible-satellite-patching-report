@@ -1,0 +1,35 @@
+Report Generated,{{ patching_report_data.report_generated }}
+Report Period (Days),{{ patching_report_data.report_period_days }}
+Total Jobs,{{ patching_report_data.total_jobs }}
+Total Hosts,{{ patching_report_data.hosts | length }}
+Total Errata,{{ patching_report_data.errata | length }}
+
+PATCHING JOBS
+Job ID,Description,Initiated By,Start Time,End Time,Status,Number of Hosts,Content View
+{% for job in patching_report_data.jobs %}
+{{ job.id }},"{{ job.description | default('N/A') }}",{{ job.triggering.user_login | default(job.ssh_user | default('Unknown')) }},{{ job.start_at | default('N/A') }},{{ job.end_at | default('N/A') }},{{ job.status }},{{ job.targeting.hosts | default([]) | length }},{{ job.template_invocations[0].template_name | default('N/A') if job.template_invocations is defined else 'N/A' }}
+{% endfor %}
+
+ERRATA APPLIED
+Errata ID,Title,Type,Severity,Issued Date,Updated Date,Number of Packages,CVEs
+{% for erratum in patching_report_data.errata %}
+{{ erratum.errata_id | default(erratum.id) }},"{{ erratum.title | default('N/A') }}",{{ erratum.type | default('N/A') }},{{ erratum.severity | default('N/A') }},{{ erratum.issued | default('N/A') }},{{ erratum.updated | default('N/A') }},{{ erratum.packages | default([]) | length }},"{{ erratum.cves | default([]) | join('; ') }}"
+{% endfor %}
+
+HOST INFORMATION
+Hostname,Operating System,Content View,Lifecycle Environment,Last Checkin,Errata Installable,Packages Upgradable
+{% for host in patching_report_data.hosts %}
+{{ host.name }},{{ host.operatingsystem_name | default('N/A') }},{{ host.content_facet_attributes.content_view_name | default('N/A') }},{{ host.content_facet_attributes.lifecycle_environment_name | default('N/A') }},{{ host.last_report | default('Never') }},{{ host.content_facet_attributes.errata_counts.total | default(0) }},{{ host.content_facet_attributes.applicable_package_count | default(0) }}
+{% endfor %}
+
+{% if patching_report_data.host_packages | length > 0 %}
+PACKAGE UPDATES BY HOST
+Hostname,Package Name,Previous Version,New Version,Architecture,Status,Category
+{% for host_pkg in patching_report_data.host_packages %}
+{% if host_pkg.json.results is defined %}
+{% for package in host_pkg.json.results %}
+{{ host_pkg.item.name | default('Unknown') }},{{ package.name }},{{ package.version | default('N/A') }},{{ package.nvra | default(package.version | default('N/A')) }},{{ package.arch | default('N/A') }},{{ package.upgradable | default(false) | ternary('Upgradable', 'Current') }},{{ package.summary | default('N/A') }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
