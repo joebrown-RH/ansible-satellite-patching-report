@@ -838,7 +838,10 @@
                                         {% endif %}
 
                                         {# If nothing is available #}
-                                        {% if not job_detail.json.input_values and not job_output and not (job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0) %}
+                                        {% set has_input_values = job_detail.json.input_values is defined and job_detail.json.input_values %}
+                                        {% set has_output = job_output and job_output.json is defined %}
+                                        {% set has_templates = job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0 %}
+                                        {% if not has_input_values and not has_output and not has_templates %}
                                         <div class="package-item" style="text-align: center; padding: 20px; color: #6c757d;">
                                             <em>No detailed package information available from Satellite API for this job.</em>
                                             <div style="margin-top: 10px; font-size: 0.85rem;">
