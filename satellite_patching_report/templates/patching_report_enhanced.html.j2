@@ -784,20 +784,21 @@
                                     <div class="package-details-content">
                                         {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
 
-
-                                        {# Show parsed package updates from job output #}
+                                        {# Parse and display package updates per host #}
                                         {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
-                                        {% set full_output = [] %}
+
+                                        {# Loop through each host's output #}
                                         {% for host_output in job_output.json.outputs %}
-                                            {% if host_output.output is defined %}
-                                                {% for line_obj in host_output.output %}
-                                                    {% if line_obj.output is defined %}
-                                                        {% set _ = full_output.append(line_obj.output) %}
-                                                    {% endif %}
-                                                {% endfor %}
+                                        {% if host_output.output is defined %}
+
+                                        {# Build full output text for this host #}
+                                        {% set host_lines = [] %}
+                                        {% for line_obj in host_output.output %}
+                                            {% if line_obj.output is defined %}
+                                                {% set _ = host_lines.append(line_obj.output) %}
                                             {% endif %}
                                         {% endfor %}
-                                        {% set output_text = full_output | join('') %}
+                                        {% set output_text = host_lines | join('') %}
 
                                         {# Parse package updates from DNF/YUM output #}
                                         {% if 'Upgrading' in output_text or 'Installing' in output_text %}
@@ -843,45 +844,55 @@
                                             {% endif %}
                                         {% endfor %}
 
-                                        <div style="margin-bottom: 15px; padding: 12px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
-                                            <strong>📦 Package Updates:</strong>
-                                            <div class="package-list" style="margin-top: 10px;">
-                                                {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
-                                                <div class="package-item">
-                                                    <div>
-                                                        <div class="package-name">{{ pkg_name }}</div>
-                                                        <div class="package-versions">
-                                                            {% if pkg_name in package_old_versions %}
-                                                            <span class="version-old">{{ package_old_versions[pkg_name] }}</span>
-                                                            <span class="version-arrow">→</span>
-                                                            {% endif %}
-                                                            <span class="version-new">{{ pkg_info.version }}</span>
-                                                            <span style="margin-left: 10px; color: #6c757d; font-size: 0.8rem;">({{ pkg_info.arch }})</span>
+                                        {# Only display if packages were found #}
+                                        {% if package_upgrades | length > 0 %}
+                                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ee0000;">
+                                            <div style="margin-bottom: 12px;">
+                                                <strong style="font-size: 1.1em; color: #ee0000;">🖥️ {{ host_output.host_name | default('Unknown Host') }}</strong>
+                                            </div>
+
+                                            <div style="padding: 12px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
+                                                <strong>📦 Package Updates ({{ package_upgrades | length }}):</strong>
+                                                <div class="package-list" style="margin-top: 10px;">
+                                                    {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
+                                                    <div class="package-item">
+                                                        <div>
+                                                            <div class="package-name">{{ pkg_name }}</div>
+                                                            <div class="package-versions">
+                                                                {% if pkg_name in package_old_versions %}
+                                                                <span class="version-old">{{ package_old_versions[pkg_name] }}</span>
+                                                                <span class="version-arrow">→</span>
+                                                                {% endif %}
+                                                                <span class="version-new">{{ pkg_info.version }}</span>
+                                                                <span style="margin-left: 10px; color: #6c757d; font-size: 0.8rem;">({{ pkg_info.arch }})</span>
+                                                            </div>
                                                         </div>
+                                                        <span class="package-status updated">✓ Updated</span>
                                                     </div>
-                                                    <span class="package-status updated">✓ Updated</span>
+                                                    {% endfor %}
                                                 </div>
-                                                {% endfor %}
                                             </div>
-                                        </div>
 
-                                        {# Show summary from "Upgraded:" section #}
-                                        {% if 'Upgraded:' in output_text %}
-                                        <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                                            <strong>✅ Summary:</strong>
-                                            <div style="margin-top: 5px; font-size: 0.9rem;">
-                                                {% set upgraded_section = output_text.split('Upgraded:')[1].split('Complete!')[0] | trim %}
-                                                {% set package_count = upgraded_section.split() | select('match', '.*-.*\..*') | list | length %}
-                                                Successfully upgraded <strong>{{ package_count }}</strong> packages
+                                            {# Show summary from "Upgraded:" section #}
+                                            {% if 'Upgraded:' in output_text %}
+                                            <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                                                <strong>✅ Summary:</strong>
+                                                <div style="margin-top: 5px; font-size: 0.9rem;">
+                                                    {% set upgraded_section = output_text.split('Upgraded:')[1].split('Complete!')[0] | trim %}
+                                                    {% set package_count = upgraded_section.split() | select('match', '.*-.*\..*') | list | length %}
+                                                    Successfully upgraded <strong>{{ package_count }}</strong> packages
+                                                </div>
                                             </div>
+                                            {% endif %}
                                         </div>
-                                        {% endif %}
-                                        {% endif %}
                                         {% endif %}
 
+                                        {% endif %}
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        {% else %}
                                         {# If no package data found, show message #}
-                                        {% set has_output = job_output and job_output.json is defined and job_output.json.outputs is defined %}
-                                        {% if not has_output or ('Upgrading:' not in output_text and 'Installing:' not in output_text) %}
                                         <div class="package-item" style="text-align: center; padding: 20px; color: #6c757d;">
                                             <em>No package update details captured in job output.</em>
                                             <div style="margin-top: 10px; font-size: 0.85rem;">

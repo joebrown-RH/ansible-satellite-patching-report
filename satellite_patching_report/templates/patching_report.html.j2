@@ -272,6 +272,96 @@
                         <strong>Content View:</strong> {{ job.template_invocations[0].template_name | default('N/A') }}
                     </div>
                     {% endif %}
+
+                    {# Add package updates per host #}
+                    {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+                    {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
+                    <div style="margin-top: 20px;">
+                        <strong>Package Updates by Host:</strong>
+                        {% for host_output in job_output.json.outputs %}
+                        {% if host_output.output is defined %}
+                        {# Build full output text for this host #}
+                        {% set host_lines = [] %}
+                        {% for line_obj in host_output.output %}
+                            {% if line_obj.output is defined %}
+                                {% set _ = host_lines.append(line_obj.output) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% set output_text = host_lines | join('') %}
+
+                        {# Parse package updates from DNF/YUM output #}
+                        {% if 'Upgrading' in output_text or 'Installing' in output_text %}
+                        {% set package_upgrades = {} %}
+                        {% set package_old_versions = {} %}
+
+                        {# First pass: Extract new versions from transaction table #}
+                        {% for line in output_text.split('\n') %}
+                            {% if line | trim and not line.startswith('=') and not line.startswith('-') %}
+                                {% set parts = line.split() %}
+                                {% if parts | length >= 4 and parts[0] not in ['Package', 'Upgrade', 'Install', 'Upgrading:', 'Installing:', 'Downloading', 'Running', 'Preparing', 'Cleanup', 'Installed', 'Upgraded:', 'Complete!', 'Red', 'Dependencies', 'Updating', 'Transaction', 'Total'] %}
+                                    {% if parts[1] in ['x86_64', 'noarch', 'i686', 'aarch64', 's390x', 'ppc64le'] and '.' in parts[2] %}
+                                        {% set _ = package_upgrades.update({parts[0]: {'version': parts[2], 'arch': parts[1]}}) %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Second pass: Extract old versions from "Cleanup" section #}
+                        {% for line in output_text.split('\n') %}
+                            {% if 'Cleanup' in line and ':' in line %}
+                                {% set cleanup_part = line.split(':')[1] | trim %}
+                                {% set parts = cleanup_part.split() %}
+                                {% if parts | length >= 1 %}
+                                    {% set full_package = parts[0] %}
+                                    {% if full_package.endswith('.x86_64') or full_package.endswith('.noarch') or full_package.endswith('.i686') or full_package.endswith('.aarch64') %}
+                                        {% set pkg_parts = full_package.rsplit('.', 1) %}
+                                        {% set pkg_name_version = pkg_parts[0] %}
+                                        {% for pkg_name in package_upgrades.keys() %}
+                                            {% if pkg_name_version.startswith(pkg_name ~ '-') %}
+                                                {% set old_version = pkg_name_version[pkg_name|length + 1:] %}
+                                                {% set _ = package_old_versions.update({pkg_name: old_version}) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Display packages if found #}
+                        {% if package_upgrades | length > 0 %}
+                        <div style="margin-top: 15px; padding: 12px; background: white; border-left: 4px solid #ee0000; border-radius: 4px;">
+                            <div style="margin-bottom: 8px; font-weight: bold; color: #ee0000;">
+                                🖥️ {{ host_output.host_name | default('Unknown Host') }} ({{ package_upgrades | length }} packages)
+                            </div>
+                            <table style="box-shadow: none; margin-top: 5px;">
+                                <thead>
+                                    <tr>
+                                        <th>Package</th>
+                                        <th>Old Version</th>
+                                        <th></th>
+                                        <th>New Version</th>
+                                        <th>Arch</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
+                                    <tr>
+                                        <td>{{ pkg_name }}</td>
+                                        <td class="version-change">{{ package_old_versions[pkg_name] | default('N/A') }}</td>
+                                        <td class="arrow">→</td>
+                                        <td class="version-change">{{ pkg_info.version }}</td>
+                                        <td>{{ pkg_info.arch }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
