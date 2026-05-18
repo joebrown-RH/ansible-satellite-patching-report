@@ -638,11 +638,11 @@
             </div>
             <div class="summary-card success">
                 <div class="summary-card-value">{{ patching_report_data.hosts | length }}</div>
-                <div class="summary-card-label">Hosts</div>
+                <div class="summary-card-label">Managed Hosts</div>
             </div>
-            <div class="summary-card warning">
-                <div class="summary-card-value">{{ patching_report_data.errata | length }}</div>
-                <div class="summary-card-label">Errata</div>
+            <div class="summary-card info">
+                <div class="summary-card-value" id="successCount">0</div>
+                <div class="summary-card-label">Successful Jobs</div>
             </div>
             <div class="summary-card">
                 <div class="summary-card-value" id="successRate">0%</div>
@@ -768,45 +768,35 @@
                                         </div>
                                     </div>
 
-                                    {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
-                                    {% if job_output and job_output.json is defined and job_output.json.outputs is defined %}
+                                    {% set job_detail = patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+                                    {% if job_detail and job_detail.json is defined %}
+                                    {% set task_name = job.description | default('') | lower %}
+                                    {% set is_patch_job = 'patch' in task_name or 'update' in task_name or 'errata' in task_name %}
+
+                                    {% if is_patch_job %}
                                     <div class="package-details-toggle" onclick="togglePackageDetails(this)">
                                         <div class="package-details-toggle-text">
                                             📦 Package Updates
-                                            <span class="package-count-badge">View Details</span>
+                                            <span class="package-count-badge">Click to view</span>
                                         </div>
                                         <span class="toggle-arrow">▼</span>
                                     </div>
                                     <div class="package-details-content">
-                                        <div class="output-section">
-                                            <strong>Job Output:</strong>
-                                            <pre>{{ job_output.json.outputs | first | default('No output available') }}</pre>
-                                        </div>
-                                    </div>
-                                    {% elif patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first is defined %}
-                                    {% set job_detail = patching_report_data.job_details | selectattr('item.id', 'equalto', job.id) | first %}
-                                    {% if job_detail.json.template_invocations is defined and job_detail.json.template_invocations | length > 0 %}
-                                    <div class="package-details-toggle" onclick="togglePackageDetails(this)">
-                                        <div class="package-details-toggle-text">
-                                            📦 Job Information
-                                            <span class="package-count-badge">View Details</span>
-                                        </div>
-                                        <span class="toggle-arrow">▼</span>
-                                    </div>
-                                    <div class="package-details-content">
-                                        <div class="package-list">
-                                            {% for template in job_detail.json.template_invocations %}
-                                            <div class="package-item">
-                                                <div>
-                                                    <div class="package-name">{{ template.template_name | default('Action') }}</div>
-                                                    <div class="package-versions">{{ template.input_values | default({}) | tojson }}</div>
-                                                </div>
-                                                <span class="package-status {{ 'updated' if template.template_name else 'installed' }}">
-                                                    ✓ Executed
-                                                </span>
+                                        <div class="package-list" id="packages-{{ job.id }}">
+                                            <!-- Packages will be extracted and displayed via JavaScript -->
+                                            <div class="package-item" style="text-align: center; padding: 20px; color: #6c757d;">
+                                                <em>Package details available in job output. Enable verbose logging for detailed version information.</em>
                                             </div>
-                                            {% endfor %}
                                         </div>
+
+                                        {% if job_detail.json.input_values is defined %}
+                                        <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                                            <strong>📌 Errata Applied:</strong>
+                                            <div style="margin-top: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                                {{ job_detail.json.input_values.get('errata', 'N/A') if job_detail.json.input_values is mapping else 'See job details' }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     {% endif %}
                                     {% endif %}
@@ -881,62 +871,7 @@
                 </div>
             </div>
 
-            <!-- Errata Section -->
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('errataSection')">
-                    <h3>
-                        <span>🔒</span>
-                        Errata
-                        <span class="section-count" id="errataCount">{{ patching_report_data.errata | length }}</span>
-                    </h3>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="section-content" id="errataSection">
-                    <div id="errataList">
-                        {% if patching_report_data.errata | length > 0 %}
-                            {% for erratum in patching_report_data.errata %}
-                            <div class="host-card"
-                                 data-hostname="{{ erratum.errata_id | lower }}"
-                                 data-severity="{{ erratum.severity | default('moderate') | lower }}"
-                                 data-search="{{ (erratum.errata_id ~ ' ' ~ erratum.title ~ ' ' ~ erratum.description | default('')) | lower }}">
-                                <div class="host-card-header">
-                                    <div class="host-name">{{ erratum.errata_id }}</div>
-                                    <span class="badge badge-{{ erratum.severity | default('moderate') }}">
-                                        {{ erratum.severity | default('Moderate') | upper }}
-                                    </span>
-                                </div>
-                                <div class="host-card-body">
-                                    <div class="host-meta">
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Title</span>
-                                            <span class="host-meta-value">{{ erratum.title | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Type</span>
-                                            <span class="host-meta-value">{{ erratum.type | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Issued</span>
-                                            <span class="host-meta-value">{{ erratum.issued | default('N/A') }}</span>
-                                        </div>
-                                        <div class="host-meta-item">
-                                            <span class="host-meta-label">Updated</span>
-                                            <span class="host-meta-value">{{ erratum.updated | default('N/A') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="no-results">
-                                <div class="no-results-icon">🔒</div>
-                                <h3>No Errata Found</h3>
-                                <p>No errata available in the reporting period.</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+            <!-- Errata are now shown per-job instead of a global list -->
         </div>
     </div>
 
@@ -1063,12 +998,17 @@
         // Calculate success rate
         function calculateSuccessRate() {
             const totalJobs = {{ patching_report_data.total_jobs | int }};
+            const successfulJobs = {{ patching_report_data.jobs | selectattr('succeeded', 'equalto', true) | list | length }};
+
+            // Update successful jobs count
+            document.getElementById('successCount').textContent = successfulJobs;
+
+            // Update success rate
             if (totalJobs === 0) {
                 document.getElementById('successRate').textContent = 'N/A';
                 return;
             }
 
-            const successfulJobs = {{ patching_report_data.jobs | selectattr('succeeded', 'equalto', true) | list | length }};
             const rate = ((successfulJobs / totalJobs) * 100).toFixed(1);
             document.getElementById('successRate').textContent = rate + '%';
         }

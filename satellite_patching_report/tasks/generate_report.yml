@@ -67,9 +67,9 @@
   when: patching_jobs | length > 0
   ignore_errors: true
 
-- name: Query Satellite for errata applied
+- name: Query Satellite for errata (only for summary, not full list)
   ansible.builtin.uri:
-    url: "https://{{ satellite_server }}/katello/api/errata?per_page=1000"
+    url: "https://{{ satellite_server }}/katello/api/errata?per_page=50"
     method: GET
     user: "{{ satellite_username }}"
     password: "{{ satellite_password }}"
@@ -80,6 +80,7 @@
     status_code: 200
   register: satellite_errata
   delegate_to: localhost
+  when: false  # Disabled - we'll show errata per job instead
 
 - name: Query Satellite for host collections
   ansible.builtin.uri:
