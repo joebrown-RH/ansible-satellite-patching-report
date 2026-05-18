@@ -52,7 +52,7 @@
 
 - name: Query Satellite for errata applied
   ansible.builtin.uri:
-    url: "https://{{ satellite_server }}/api/v2/errata?search=issued>=\"{{ report_days_back }} days ago\""
+    url: "https://{{ satellite_server }}/api/v2/errata?search={{ ('issued>=\"' + report_days_back|string + ' days ago\"') | urlencode }}"
     method: GET
     user: "{{ satellite_username }}"
     password: "{{ satellite_password }}"
