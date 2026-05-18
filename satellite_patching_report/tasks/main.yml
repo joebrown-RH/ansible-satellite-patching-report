@@ -1,4 +1,12 @@
 ---
+- name: Gather minimal facts for date/time
+  ansible.builtin.setup:
+    gather_subset:
+      - '!all'
+      - '!min'
+      - date_time
+  when: ansible_date_time is not defined
+
 - name: Satellite Patching Report - Main Tasks
   block:
     - name: Include report generation tasks
