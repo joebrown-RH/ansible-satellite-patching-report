@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Patching Report - {{ patching_report_data.report_generated }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0066cc;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --dark-bg: #1a1a1a;
+            --light-bg: #ffffff;
+            --border-color: #dee2e6;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--light-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-meta {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Executive Summary */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .summary-card.success { border-left-color: var(--success-color); }
+        .summary-card.warning { border-left-color: var(--warning-color); }
+        .summary-card.danger { border-left-color: var(--danger-color); }
+        .summary-card.info { border-left-color: var(--info-color); }
+
+        .summary-card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .summary-card.success .summary-card-value { color: var(--success-color); }
+        .summary-card.warning .summary-card-value { color: var(--warning-color); }
+        .summary-card.danger .summary-card-value { color: var(--danger-color); }
+
+        .summary-card-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Search and Filter Section */
+        .search-filter-section {
+            padding: 30px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-filter-section h2 {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 45px 12px 45px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 5px 10px;
+            font-size: 1rem;
+            display: none;
+        }
+
+        .clear-search:hover {
+            color: var(--danger-color);
+        }
+
+        .clear-search.active {
+            display: block;
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select {
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .active-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .filter-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .results-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-left: 4px solid var(--info-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        /* Content Sections */
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .section-header:hover {
+            background: #e9ecef;
+        }
+
+        .section-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+
+        .collapse-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+        }
+
+        .section-header.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 20px;
+            display: block;
+        }
+
+        .section-content.hidden {
+            display: none;
+        }
+
+        /* Host Cards */
+        .host-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: box-shadow 0.3s;
+        }
+
+        .host-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .host-card-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .host-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .host-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .host-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .host-status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .host-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .host-card-body {
+            padding: 15px 20px;
+        }
+
+        .host-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .host-meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .host-meta-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .host-meta-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        /* Utilities */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-important {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-moderate {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-meta {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .search-filter-section {
+                display: none;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+
+            .host-card {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🛡️</span>
+                Red Hat Satellite Patching Report
+            </h1>
+            <div class="header-meta">
+                <span>📅 Generated: {{ patching_report_data.report_generated }}</span>
+                <span>⏱️ Period: Last {{ patching_report_data.report_period_days }} days</span>
+                <span>🖥️ Server: {{ satellite_server }}</span>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="summary-cards">
+            <div class="summary-card info">
+                <div class="summary-card-value">{{ patching_report_data.total_jobs }}</div>
+                <div class="summary-card-label">Patching Jobs</div>
+            </div>
+            <div class="summary-card success">
+                <div class="summary-card-value">{{ patching_report_data.hosts | length }}</div>
+                <div class="summary-card-label">Hosts</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-card-value">{{ patching_report_data.errata | length }}</div>
+                <div class="summary-card-label">Errata</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value" id="successRate">0%</div>
+                <div class="summary-card-label">Success Rate</div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="search-filter-section">
+            <h2>🔍 Search & Filter</h2>
+
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search by hostname, package name, errata ID, CVE, or error message..."
+                    autocomplete="off"
+                >
+                <button class="clear-search" id="clearSearch" title="Clear search">✕</button>
+            </div>
+
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="filterEnvironment">Environment</label>
+                    <select id="filterEnvironment">
+                        <option value="">All Environments</option>
+                        <option value="production">Production</option>
+                        <option value="development">Development</option>
+                        <option value="qa">QA</option>
+                        <option value="staging">Staging</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterStatus">Status</label>
+                    <select id="filterStatus">
+                        <option value="">All Status</option>
+                        <option value="success">Success</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterSeverity">Errata Severity</label>
+                    <select id="filterSeverity">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="important">Important</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterContentView">Content View</label>
+                    <select id="filterContentView">
+                        <option value="">All Content Views</option>
+                        {% for job in patching_report_data.jobs | unique(attribute='content_view') %}
+                        <option value="{{ job.content_view | default('unknown') }}">{{ job.content_view | default('Unknown') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="active-filters" id="activeFilters"></div>
+
+            <div class="results-info" id="resultsInfo">
+                Showing <strong id="visibleCount">0</strong> of <strong id="totalCount">0</strong> items
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Patching Jobs Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('jobsSection')">
+                    <h3>
+                        <span>📋</span>
+                        Patching Jobs
+                        <span class="section-count" id="jobsCount">{{ patching_report_data.total_jobs }}</span>
+                    </h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="section-content" id="jobsSection">
+                    <div id="jobsList">
+                        {% if patching_report_data.total_jobs > 0 %}
+                            {% for job in patching_report_data.jobs %}
+                            <div class="host-card"
+                                 data-hostname="{{ job.targeting.search_query | default('unknown') | lower }}"
+                                 data-environment="{{ job.targeting.search_query | default('') | lower }}"
+                                 data-status="{{ 'success' if job.succeeded else 'error' }}"
+                                 data-contentview="{{ job.content_view | default('unknown') | lower }}">
+                                <div class="host-card-header">
+                                    <div class="host-name">{{ job.description | default('Patching Job') }}</div>
+                                    <div class="host-status {{ 'success' if job.succeeded else 'error' }}">
+                                        {{ '✅ Success' if job.succeeded else '❌ Failed' }}
+                                    </div>
+                                </div>
+                                <div class="host-card-body">
+                                    <div class="host-meta">
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Started</span>
+                                            <span class="host-meta-value">{{ job.start_at | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Finished</span>
+                                            <span class="host-meta-value">{{ job.finished_at | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">User</span>
+                                            <span class="host-meta-value">{{ job.username | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Job ID</span>
+                                            <span class="host-meta-value">{{ job.id }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-results">
+                                <div class="no-results-icon">📭</div>
+                                <h3>No Patching Jobs Found</h3>
+                                <p>No patching activity in the last {{ patching_report_data.report_period_days }} days.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hosts Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('hostsSection')">
+                    <h3>
+                        <span>🖥️</span>
+                        Hosts
+                        <span class="section-count" id="hostsCount">{{ patching_report_data.hosts | length }}</span>
+                    </h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="section-content" id="hostsSection">
+                    <div id="hostsList">
+                        {% if patching_report_data.hosts | length > 0 %}
+                            {% for host in patching_report_data.hosts %}
+                            <div class="host-card"
+                                 data-hostname="{{ host.name | lower }}"
+                                 data-environment="{{ host.content_facet_attributes.lifecycle_environment_name | default('') | lower }}"
+                                 data-contentview="{{ host.content_facet_attributes.content_view_name | default('unknown') | lower }}">
+                                <div class="host-card-header">
+                                    <div class="host-name">{{ host.name }}</div>
+                                    <div class="host-status success">
+                                        ✅ Managed
+                                    </div>
+                                </div>
+                                <div class="host-card-body">
+                                    <div class="host-meta">
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Environment</span>
+                                            <span class="host-meta-value">{{ host.content_facet_attributes.lifecycle_environment_name | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Content View</span>
+                                            <span class="host-meta-value">{{ host.content_facet_attributes.content_view_name | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">OS</span>
+                                            <span class="host-meta-value">{{ host.operatingsystem_name | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Last Checkin</span>
+                                            <span class="host-meta-value">{{ host.subscription_facet_attributes.last_checkin | default('N/A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-results">
+                                <div class="no-results-icon">🖥️</div>
+                                <h3>No Hosts Found</h3>
+                                <p>No managed hosts in Satellite.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Errata Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('errataSection')">
+                    <h3>
+                        <span>🔒</span>
+                        Errata
+                        <span class="section-count" id="errataCount">{{ patching_report_data.errata | length }}</span>
+                    </h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="section-content" id="errataSection">
+                    <div id="errataList">
+                        {% if patching_report_data.errata | length > 0 %}
+                            {% for erratum in patching_report_data.errata %}
+                            <div class="host-card"
+                                 data-hostname="{{ erratum.errata_id | lower }}"
+                                 data-severity="{{ erratum.severity | default('moderate') | lower }}"
+                                 data-search="{{ (erratum.errata_id ~ ' ' ~ erratum.title ~ ' ' ~ erratum.description | default('')) | lower }}">
+                                <div class="host-card-header">
+                                    <div class="host-name">{{ erratum.errata_id }}</div>
+                                    <span class="badge badge-{{ erratum.severity | default('moderate') }}">
+                                        {{ erratum.severity | default('Moderate') | upper }}
+                                    </span>
+                                </div>
+                                <div class="host-card-body">
+                                    <div class="host-meta">
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Title</span>
+                                            <span class="host-meta-value">{{ erratum.title | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Type</span>
+                                            <span class="host-meta-value">{{ erratum.type | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Issued</span>
+                                            <span class="host-meta-value">{{ erratum.issued | default('N/A') }}</span>
+                                        </div>
+                                        <div class="host-meta-item">
+                                            <span class="host-meta-label">Updated</span>
+                                            <span class="host-meta-value">{{ erratum.updated | default('N/A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-results">
+                                <div class="no-results-icon">🔒</div>
+                                <h3>No Errata Found</h3>
+                                <p>No errata available in the reporting period.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search and Filter functionality
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const filterEnvironment = document.getElementById('filterEnvironment');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterSeverity = document.getElementById('filterSeverity');
+        const filterContentView = document.getElementById('filterContentView');
+        const activeFiltersDiv = document.getElementById('activeFilters');
+        const resultsInfo = document.getElementById('resultsInfo');
+        const visibleCount = document.getElementById('visibleCount');
+        const totalCount = document.getElementById('totalCount');
+
+        // Get all filterable items
+        const allCards = document.querySelectorAll('.host-card');
+        totalCount.textContent = allCards.length;
+
+        // Apply filters
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const envFilter = filterEnvironment.value.toLowerCase();
+            const statusFilter = filterStatus.value.toLowerCase();
+            const severityFilter = filterSeverity.value.toLowerCase();
+            const cvFilter = filterContentView.value.toLowerCase();
+
+            let visibleItems = 0;
+
+            allCards.forEach(card => {
+                const hostname = card.dataset.hostname || '';
+                const environment = card.dataset.environment || '';
+                const status = card.dataset.status || '';
+                const severity = card.dataset.severity || '';
+                const contentview = card.dataset.contentview || '';
+                const searchData = card.dataset.search || hostname;
+
+                // Check all filter conditions
+                const matchesSearch = !searchTerm || searchData.includes(searchTerm);
+                const matchesEnv = !envFilter || environment.includes(envFilter);
+                const matchesStatus = !statusFilter || status === statusFilter;
+                const matchesSeverity = !severityFilter || severity === severityFilter;
+                const matchesCV = !cvFilter || contentview === cvFilter;
+
+                const shouldShow = matchesSearch && matchesEnv && matchesStatus && matchesSeverity && matchesCV;
+
+                if (shouldShow) {
+                    card.style.display = 'block';
+                    visibleItems++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            visibleCount.textContent = visibleItems;
+            updateActiveFilters();
+
+            // Show/hide clear search button
+            if (searchTerm) {
+                clearSearch.classList.add('active');
+            } else {
+                clearSearch.classList.remove('active');
+            }
+        }
+
+        // Update active filters display
+        function updateActiveFilters() {
+            const filters = [];
+
+            if (searchInput.value) {
+                filters.push({ label: 'Search', value: searchInput.value, clear: () => { searchInput.value = ''; applyFilters(); }});
+            }
+            if (filterEnvironment.value) {
+                filters.push({ label: 'Environment', value: filterEnvironment.options[filterEnvironment.selectedIndex].text, clear: () => { filterEnvironment.value = ''; applyFilters(); }});
+            }
+            if (filterStatus.value) {
+                filters.push({ label: 'Status', value: filterStatus.options[filterStatus.selectedIndex].text, clear: () => { filterStatus.value = ''; applyFilters(); }});
+            }
+            if (filterSeverity.value) {
+                filters.push({ label: 'Severity', value: filterSeverity.options[filterSeverity.selectedIndex].text, clear: () => { filterSeverity.value = ''; applyFilters(); }});
+            }
+            if (filterContentView.value) {
+                filters.push({ label: 'Content View', value: filterContentView.options[filterContentView.selectedIndex].text, clear: () => { filterContentView.value = ''; applyFilters(); }});
+            }
+
+            activeFiltersDiv.innerHTML = '';
+            filters.forEach(filter => {
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                tag.innerHTML = `${filter.label}: ${filter.value} <button onclick="this.parentElement.remove(); (${filter.clear.toString()})()">✕</button>`;
+                activeFiltersDiv.appendChild(tag);
+            });
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', applyFilters);
+        clearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            applyFilters();
+            searchInput.focus();
+        });
+        filterEnvironment.addEventListener('change', applyFilters);
+        filterStatus.addEventListener('change', applyFilters);
+        filterSeverity.addEventListener('change', applyFilters);
+        filterContentView.addEventListener('change', applyFilters);
+
+        // Toggle sections
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+
+            section.classList.toggle('hidden');
+            header.classList.toggle('collapsed');
+        }
+
+        // Calculate success rate
+        function calculateSuccessRate() {
+            const totalJobs = {{ patching_report_data.total_jobs }};
+            if (totalJobs === 0) {
+                document.getElementById('successRate').textContent = 'N/A';
+                return;
+            }
+
+            const successfulJobs = {{ patching_report_data.jobs | selectattr('succeeded', 'equalto', true) | list | length }};
+            const rate = ((successfulJobs / totalJobs) * 100).toFixed(1);
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            applyFilters();
+            calculateSuccessRate();
+        });
+    </script>
+</body>
+</html>

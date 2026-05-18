@@ -8,6 +8,7 @@ satellite_validate_certs: false
 # Report parameters
 report_days_back: 7  # How many days back to query for patching jobs
 report_format: "both"  # Options: html, csv, both
+report_template: "enhanced"  # Options: classic, enhanced (enhanced has search/filter features)
 report_output_dir: "/tmp/satellite_reports"
 report_filename_prefix: "satellite_patching_report"
 

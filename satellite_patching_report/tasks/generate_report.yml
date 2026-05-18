@@ -111,7 +111,7 @@
 
 - name: Generate HTML report
   ansible.builtin.template:
-    src: patching_report.html.j2
+    src: "{{ 'patching_report_enhanced.html.j2' if report_template == 'enhanced' else 'patching_report.html.j2' }}"
     dest: "{{ report_output_dir }}/{{ report_filename_prefix }}_{{ report_timestamp }}.html"
     mode: '0644'
   delegate_to: localhost
