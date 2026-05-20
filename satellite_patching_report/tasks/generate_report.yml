@@ -145,10 +145,38 @@
   ansible.builtin.set_fact:
     patching_report_data: "{{ patching_report_data | combine({'host_packages': host_packages.results | default([]), 'host_errata': host_errata.results | default([])}) }}"
 
+- name: Determine report template based on report type
+  ansible.builtin.set_fact:
+    html_template: >-
+      {%- if report_type == 'pre-patch' -%}
+      pre_patching_report.html.j2
+      {%- elif report_type == 'post-patch' -%}
+      post_patching_report.html.j2
+      {%- elif report_template == 'enhanced' -%}
+      patching_report_enhanced.html.j2
+      {%- else -%}
+      patching_report.html.j2
+      {%- endif -%}
+    csv_template: >-
+      {%- if report_type == 'pre-patch' -%}
+      pre_patching_report.csv.j2
+      {%- elif report_type == 'post-patch' -%}
+      post_patching_report.csv.j2
+      {%- else -%}
+      patching_report.csv.j2
+      {%- endif -%}
+    report_type_suffix: >-
+      {%- if report_type == 'pre-patch' -%}
+      _pre_patch
+      {%- elif report_type == 'post-patch' -%}
+      _post_patch
+      {%- else -%}
+      {%- endif -%}
+
 - name: Generate HTML report
   ansible.builtin.template:
-    src: "{{ 'patching_report_enhanced.html.j2' if report_template == 'enhanced' else 'patching_report.html.j2' }}"
-    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}_{{ report_timestamp }}.html"
+    src: "{{ html_template }}"
+    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}{{ report_type_suffix }}_{{ report_timestamp }}.html"
     mode: '0644'
   delegate_to: localhost
   when: report_format in ['html', 'both']
@@ -156,8 +184,8 @@
 
 - name: Generate CSV report
   ansible.builtin.template:
-    src: patching_report.csv.j2
-    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}_{{ report_timestamp }}.csv"
+    src: "{{ csv_template }}"
+    dest: "{{ report_output_dir }}/{{ report_filename_prefix }}{{ report_type_suffix }}_{{ report_timestamp }}.csv"
     mode: '0644'
   delegate_to: localhost
   when: report_format in ['csv', 'both']

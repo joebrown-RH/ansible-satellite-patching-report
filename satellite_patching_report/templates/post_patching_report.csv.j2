@@ -1,0 +1,82 @@
+Hostname,Environment,ContentView,OperatingSystem,JobID,JobDescription,JobStartTime,JobStatus,PackageName,OldVersion,NewVersion,Arch,ErrataID,CVE,Severity,Type,ErrataTitle,AppliedDate,RebootRequired,ErrorMessage
+{% for job in patching_report_data.jobs %}
+{%- set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) -%}
+{%- if job_output and job_output.json is defined and job_output.json.outputs is defined -%}
+{%- for host_output in job_output.json.outputs -%}
+{%- if host_output.output is defined -%}
+{%- set host_lines = [] -%}
+{%- for line_obj in host_output.output -%}
+    {%- if line_obj.output is defined -%}
+        {%- set _ = host_lines.append(line_obj.output) -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- set output_text = host_lines | join('') -%}
+{%- set hostname = host_output.host_name | default('Unknown Host') -%}
+{%- set host_data = patching_report_data.hosts | selectattr('name', 'equalto', hostname) | first | default(none) -%}
+{%- set environment = host_data.content_facet_attributes.lifecycle_environment_name | default('N/A') if host_data else 'N/A' -%}
+{%- set content_view = host_data.content_facet_attributes.content_view_name | default('N/A') if host_data else 'N/A' -%}
+{%- set os = host_data.operatingsystem_name | default('N/A') if host_data else 'N/A' -%}
+{%- set package_upgrades = {} -%}
+{%- set package_old_versions = {} -%}
+{%- if 'Upgrading' in output_text or 'Installing' in output_text -%}
+{%- for line in output_text.split('\n') -%}
+    {%- if line | trim and not line.startswith('=') and not line.startswith('-') -%}
+        {%- set parts = line.split() -%}
+        {%- if parts | length >= 4 and parts[0] not in ['Package', 'Upgrade', 'Install', 'Upgrading:', 'Installing:', 'Downloading', 'Running', 'Preparing', 'Cleanup', 'Installed', 'Upgraded:', 'Complete!', 'Red', 'Dependencies', 'Updating', 'Transaction', 'Total'] -%}
+            {%- if parts[1] in ['x86_64', 'noarch', 'i686', 'aarch64', 's390x', 'ppc64le'] and '.' in parts[2] -%}
+                {%- set _ = package_upgrades.update({parts[0]: {'version': parts[2], 'arch': parts[1]}}) -%}
+            {%- endif -%}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- for line in output_text.split('\n') -%}
+    {%- if 'Cleanup' in line and ':' in line -%}
+        {%- set cleanup_part = line.split(':')[1] | trim -%}
+        {%- set parts = cleanup_part.split() -%}
+        {%- if parts | length >= 1 -%}
+            {%- set full_package = parts[0] -%}
+            {%- if full_package.endswith('.x86_64') or full_package.endswith('.noarch') or full_package.endswith('.i686') or full_package.endswith('.aarch64') -%}
+                {%- set pkg_parts = full_package.rsplit('.', 1) -%}
+                {%- set pkg_name_version = pkg_parts[0] -%}
+                {%- for pkg_name in package_upgrades.keys() -%}
+                    {%- if pkg_name_version.startswith(pkg_name ~ '-') -%}
+                        {%- set old_version = pkg_name_version[pkg_name|length + 1:] -%}
+                        {%- set _ = package_old_versions.update({pkg_name: old_version}) -%}
+                    {%- endif -%}
+                {%- endfor -%}
+            {%- endif -%}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- set has_error = 'Error' in output_text or 'Failed' in output_text or 'FAILED' in output_text -%}
+{%- set host_errata_data = [] -%}
+{%- if host_data -%}
+    {%- set host_errata_result = patching_report_data.host_errata | selectattr('item.id', 'equalto', host_data.id) | first | default(none) -%}
+    {%- if host_errata_result and host_errata_result.json is defined and host_errata_result.json.results is defined -%}
+        {%- set host_errata_data = host_errata_result.json.results -%}
+    {%- endif -%}
+{%- endif -%}
+{%- if package_upgrades | length > 0 -%}
+{%- for pkg_name, pkg_info in package_upgrades.items() | sort -%}
+{%- set old_version = package_old_versions[pkg_name] | default('N/A') -%}
+{%- set related_errata = host_errata_data | selectattr('packages', 'defined') | selectattr('packages', 'search', pkg_name) | list -%}
+{%- if related_errata | length > 0 -%}
+{%- for erratum in related_errata -%}
+{%- set cves = erratum.cves | join(';') if erratum.cves else '' -%}
+"{{ hostname }}","{{ environment }}","{{ content_view }}","{{ os }}","{{ job.id }}","{{ job.description | default('Patching Job') | replace('"', '""') }}","{{ job.start_at | default('N/A') }}","{{ 'SUCCESS' if job.succeeded else 'FAILED' }}","{{ pkg_name }}","{{ old_version }}","{{ pkg_info.version }}","{{ pkg_info.arch }}","{{ erratum.errata_id | default(erratum.id) }}","{{ cves }}","{{ erratum.severity | default('N/A') }}","{{ erratum.type | default('N/A') }}","{{ erratum.title | default('No title') | replace('"', '""') }}","{{ job.start_at | default('N/A') }}","{{ 'Yes' if 'kernel' in pkg_name else 'No' }}",""
+{% endfor -%}
+{%- else -%}
+"{{ hostname }}","{{ environment }}","{{ content_view }}","{{ os }}","{{ job.id }}","{{ job.description | default('Patching Job') | replace('"', '""') }}","{{ job.start_at | default('N/A') }}","{{ 'SUCCESS' if job.succeeded else 'FAILED' }}","{{ pkg_name }}","{{ old_version }}","{{ pkg_info.version }}","{{ pkg_info.arch }}","","","","","","{{ job.start_at | default('N/A') }}","{{ 'Yes' if 'kernel' in pkg_name else 'No' }}",""
+{% endif -%}
+{%- endfor -%}
+{%- elif has_error -%}
+{%- set error_msg = output_text | truncate(200) | replace('"', '""') | replace('\n', ' ') -%}
+"{{ hostname }}","{{ environment }}","{{ content_view }}","{{ os }}","{{ job.id }}","{{ job.description | default('Patching Job') | replace('"', '""') }}","{{ job.start_at | default('N/A') }}","FAILED","","","","","","","","","","","","{{ error_msg }}"
+{% else -%}
+"{{ hostname }}","{{ environment }}","{{ content_view }}","{{ os }}","{{ job.id }}","{{ job.description | default('Patching Job') | replace('"', '""') }}","{{ job.start_at | default('N/A') }}","{{ 'SUCCESS' if job.succeeded else 'FAILED' }}","","","","","","","","","No packages updated","","",""
+{% endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{% endfor -%}

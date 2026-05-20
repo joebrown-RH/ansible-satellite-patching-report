@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post-Patching Report - {{ patching_report_data.report_generated }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --critical-color: #dc3545;
+            --important-color: #ffc107;
+            --moderate-color: #17a2b8;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --primary-color: #667eea;
+            --border-color: #dee2e6;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header-meta {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .report-type-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Executive Summary */
+        .summary-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .summary-card.success { border-left-color: var(--success-color); }
+        .summary-card.error { border-left-color: var(--error-color); }
+        .summary-card.warning { border-left-color: var(--warning-color); }
+
+        .summary-card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .summary-card.success .summary-card-value { color: var(--success-color); }
+        .summary-card.error .summary-card-value { color: var(--error-color); }
+        .summary-card.warning .summary-card-value { color: var(--warning-color); }
+
+        .summary-card-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .compliance-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            margin-top: 15px;
+        }
+
+        .compliance-summary h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .compliance-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .compliance-stat {
+            text-align: center;
+        }
+
+        .compliance-stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .compliance-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Search and Filter */
+        .search-filter-section {
+            padding: 30px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 120px 12px 45px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+        }
+
+        .view-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 5px;
+        }
+
+        .view-toggle button {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .view-toggle button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: white;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .quick-actions button {
+            padding: 8px 16px;
+            border: 1px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .quick-actions button:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .results-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Content */
+        .content {
+            padding: 30px;
+        }
+
+        /* Job Groups */
+        .job-group {
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .job-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-header:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
+        .job-title h3 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+
+        .job-stats {
+            text-align: right;
+        }
+
+        .job-stats-line {
+            margin-bottom: 5px;
+        }
+
+        .job-toggle {
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .job-header.collapsed .job-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .job-body {
+            max-height: 3000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .job-body.collapsed {
+            max-height: 0;
+        }
+
+        .job-hosts {
+            padding: 20px;
+        }
+
+        .job-search {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .job-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Host Cards */
+        .host-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .host-card.hidden {
+            display: none;
+        }
+
+        .host-card.success { border-left: 4px solid var(--success-color); }
+        .host-card.error { border-left: 4px solid var(--error-color); }
+        .host-card.warning { border-left: 4px solid var(--warning-color); }
+
+        .host-header {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .host-header:hover {
+            background: #e9ecef;
+        }
+
+        .host-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .host-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .host-status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .host-status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .host-status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .host-status-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .host-summary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .host-toggle {
+            font-size: 1.1rem;
+            transition: transform 0.3s;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .host-header.collapsed .host-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .host-body {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .host-body.collapsed {
+            max-height: 0;
+        }
+
+        .host-details {
+            padding: 20px;
+        }
+
+        .host-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .host-meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .host-meta-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .host-meta-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Package Updates Table */
+        .packages-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .package-table {
+            width: 100%;
+            font-size: 0.9rem;
+            border-collapse: collapse;
+        }
+
+        .package-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .package-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .package-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .package-name {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .version-change {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .version-old {
+            color: var(--error-color);
+        }
+
+        .version-new {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        /* Errata Section */
+        .errata-section {
+            margin-bottom: 20px;
+        }
+
+        .errata-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .errata-item {
+            padding: 12px;
+            border-left: 4px solid var(--success-color);
+            border-radius: 4px;
+            background: #d4edda;
+        }
+
+        .errata-item.critical {
+            border-left-color: var(--critical-color);
+            background: #fff5f5;
+        }
+
+        .errata-item.important {
+            border-left-color: var(--important-color);
+            background: #fffef5;
+        }
+
+        .errata-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+
+        .errata-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .errata-severity-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .errata-severity-badge.critical {
+            background: var(--critical-color);
+            color: white;
+        }
+
+        .errata-severity-badge.important {
+            background: var(--important-color);
+            color: #333;
+        }
+
+        .errata-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Error Section */
+        .error-section {
+            padding: 15px;
+            background: #f8d7da;
+            border-left: 4px solid var(--error-color);
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .error-title {
+            font-weight: 600;
+            color: #721c24;
+            margin-bottom: 8px;
+        }
+
+        .error-message {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #721c24;
+            white-space: pre-wrap;
+        }
+
+        /* Discrepancies Section */
+        .discrepancies-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid var(--warning-color);
+            border-radius: 6px;
+        }
+
+        .discrepancies-section h3 {
+            margin-bottom: 15px;
+            color: #856404;
+        }
+
+        .discrepancy-item {
+            padding: 12px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        /* Table View */
+        .table-view {
+            display: none;
+        }
+
+        .table-view.active {
+            display: block;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .data-table thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>✅ Post-Patching Report - Applied Errata</h1>
+            <div class="header-meta">
+                <span class="report-type-badge">POST-PATCH VERIFICATION</span>
+                <span>📅 Generated: {{ patching_report_data.report_generated }}</span>
+                <span>⏱️ Period: Last {{ patching_report_data.report_period_days }} days</span>
+                <span>🖥️ Server: {{ satellite_server }}</span>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="summary-section">
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-card-value">{{ patching_report_data.total_jobs }}</div>
+                    <div class="summary-card-label">Patching Jobs</div>
+                </div>
+                <div class="summary-card success">
+                    <div class="summary-card-value" id="successfulJobs">0</div>
+                    <div class="summary-card-label">✅ Successful</div>
+                </div>
+                <div class="summary-card error">
+                    <div class="summary-card-value" id="failedJobs">0</div>
+                    <div class="summary-card-label">❌ Failed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-value" id="hostsPatched">0</div>
+                    <div class="summary-card-label">Hosts Patched</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-value" id="totalPackages">0</div>
+                    <div class="summary-card-label">Packages Updated</div>
+                </div>
+            </div>
+
+            <div class="compliance-summary">
+                <h3>📊 Errata Application Summary</h3>
+                <div class="compliance-stats">
+                    <div class="compliance-stat">
+                        <div class="compliance-stat-value" style="color: var(--critical-color);" id="criticalApplied">0</div>
+                        <div class="compliance-stat-label">Critical Applied</div>
+                    </div>
+                    <div class="compliance-stat">
+                        <div class="compliance-stat-value" style="color: var(--important-color);" id="importantApplied">0</div>
+                        <div class="compliance-stat-label">Important Applied</div>
+                    </div>
+                    <div class="compliance-stat">
+                        <div class="compliance-stat-value" style="color: var(--moderate-color);" id="moderateApplied">0</div>
+                        <div class="compliance-stat-label">Moderate Applied</div>
+                    </div>
+                    <div class="compliance-stat">
+                        <div class="compliance-stat-value" style="color: var(--success-color);" id="successRate">0%</div>
+                        <div class="compliance-stat-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="search-filter-section">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search by hostname, job, package, or error message..." autocomplete="off">
+                <div class="view-toggle">
+                    <button id="viewCards" class="active" onclick="switchView('cards')">📋 Cards</button>
+                    <button id="viewTable" onclick="switchView('table')">📊 Table</button>
+                </div>
+            </div>
+
+            <div class="filters-row">
+                <div class="filter-group">
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">All Status</option>
+                        <option value="success">✅ Success Only</option>
+                        <option value="failed">❌ Failed Only</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="sortBy" onchange="applySort()">
+                        <option value="time-desc">Sort by Time (Newest First)</option>
+                        <option value="time-asc">Sort by Time (Oldest First)</option>
+                        <option value="packages-desc">Sort by Packages (Most First)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <button onclick="expandAllJobs()">📂 Expand All Jobs</button>
+                <button onclick="collapseAllJobs()">📁 Collapse All Jobs</button>
+                <button onclick="expandAllHosts()">📂 Expand All Hosts</button>
+                <button onclick="collapseAllHosts()">📁 Collapse All Hosts</button>
+                <button onclick="exportToCSV()">📥 Export CSV</button>
+                <button onclick="exportToJSON()">📥 Export JSON</button>
+            </div>
+
+            <div class="results-info">
+                Showing <strong id="visibleJobs">0</strong> of <strong id="totalJobsCount">0</strong> jobs
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div id="cardsView" class="cards-view active">
+                {% if patching_report_data.total_jobs | int > 0 %}
+                {% for job in patching_report_data.jobs %}
+                {% set job_output = patching_report_data.job_outputs | selectattr('item.id', 'equalto', job.id) | first | default(none) %}
+                {% set hosts_in_job = job_output.json.outputs | length if job_output and job_output.json is defined and job_output.json.outputs is defined else 0 %}
+
+                <div class="job-group" data-job-id="{{ job.id }}" data-status="{{ 'success' if job.succeeded else 'failed' }}">
+                    <div class="job-header" onclick="toggleJob(this)">
+                        <div class="job-title">
+                            <div>
+                                <h3>{{ '✅' if job.succeeded else '❌' }} {{ job.description | default('Patching Job') }}</h3>
+                                <div class="job-meta">
+                                    <span>🆔 Job {{ job.id }}</span>
+                                    <span>👤 {{ job.username | default('N/A') }}</span>
+                                    <span>🕐 {{ job.start_at | default('N/A') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="job-stats">
+                            <div class="job-stats-line">🖥️ <strong>{{ hosts_in_job }}</strong> hosts</div>
+                            <div class="job-stats-line">{{ '✅ Succeeded' if job.succeeded else '❌ Failed' }}</div>
+                        </div>
+                        <span class="job-toggle">▼</span>
+                    </div>
+
+                    <div class="job-body">
+                        <div class="job-hosts">
+                            {% if job_output and job_output.json is defined and job_output.json.outputs is defined and job_output.json.outputs | length > 0 %}
+
+                            <div class="job-search">
+                                <input type="text"
+                                       placeholder="🔍 Search hosts in this job..."
+                                       oninput="searchJobHosts(this, '{{ job.id }}')"
+                                       id="search-job-{{ job.id }}">
+                            </div>
+
+                            <div id="hosts-job-{{ job.id }}">
+                                {% for host_output in job_output.json.outputs %}
+                                {% if host_output.output is defined %}
+
+                                {# Build output text #}
+                                {% set host_lines = [] %}
+                                {% for line_obj in host_output.output %}
+                                    {% if line_obj.output is defined %}
+                                        {% set _ = host_lines.append(line_obj.output) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% set output_text = host_lines | join('') %}
+
+                                {# Parse packages #}
+                                {% set package_upgrades = {} %}
+                                {% set package_old_versions = {} %}
+
+                                {% if 'Upgrading' in output_text or 'Installing' in output_text %}
+                                {# Extract new versions #}
+                                {% for line in output_text.split('\n') %}
+                                    {% if line | trim and not line.startswith('=') %}
+                                        {% set parts = line.split() %}
+                                        {% if parts | length >= 4 and parts[0] not in ['Package', 'Upgrade', 'Install', 'Upgrading:', 'Installing:', 'Downloading', 'Running', 'Preparing', 'Cleanup', 'Installed', 'Upgraded:', 'Complete!', 'Red', 'Dependencies', 'Updating', 'Transaction', 'Total'] %}
+                                            {% if parts[1] in ['x86_64', 'noarch', 'i686', 'aarch64'] and '.' in parts[2] %}
+                                                {% set _ = package_upgrades.update({parts[0]: {'version': parts[2], 'arch': parts[1]}}) %}
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {# Extract old versions #}
+                                {% for line in output_text.split('\n') %}
+                                    {% if 'Cleanup' in line and ':' in line %}
+                                        {% set cleanup_part = line.split(':')[1] | trim %}
+                                        {% set parts = cleanup_part.split() %}
+                                        {% if parts | length >= 1 %}
+                                            {% set full_package = parts[0] %}
+                                            {% if full_package.endswith('.x86_64') or full_package.endswith('.noarch') or full_package.endswith('.i686') %}
+                                                {% set pkg_parts = full_package.rsplit('.', 1) %}
+                                                {% set pkg_name_version = pkg_parts[0] %}
+                                                {% for pkg_name in package_upgrades.keys() %}
+                                                    {% if pkg_name_version.startswith(pkg_name ~ '-') %}
+                                                        {% set old_version = pkg_name_version[pkg_name|length + 1:] %}
+                                                        {% set _ = package_old_versions.update({pkg_name: old_version}) %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% endif %}
+
+                                {# Determine success/failure #}
+                                {% set has_error = 'Error' in output_text or 'Failed' in output_text or 'FAILED' in output_text %}
+                                {% set is_success = package_upgrades | length > 0 and not has_error %}
+
+                                {# Get errata for this host #}
+                                {% set hostname = host_output.host_name | default('Unknown Host') %}
+                                {% set host_data = patching_report_data.hosts | selectattr('name', 'equalto', hostname) | first | default(none) %}
+                                {% set host_errata_data = [] %}
+                                {% if host_data %}
+                                    {% set host_errata_result = patching_report_data.host_errata | selectattr('item.id', 'equalto', host_data.id) | first | default(none) %}
+                                    {% if host_errata_result and host_errata_result.json is defined and host_errata_result.json.results is defined %}
+                                        {% set host_errata_data = host_errata_result.json.results %}
+                                    {% endif %}
+                                {% endif %}
+
+                                <div class="host-card {{ 'success' if is_success else 'error' if has_error else 'warning' }}"
+                                     data-hostname="{{ hostname | lower }}"
+                                     data-status="{{ 'success' if is_success else 'failed' }}">
+                                    <div class="host-header collapsed" onclick="toggleHost(this)">
+                                        <div class="host-title">
+                                            <span>🖥️</span>
+                                            <span class="host-name">{{ hostname }}</span>
+                                            {% if is_success %}
+                                            <span class="host-status-badge success">✅ Success</span>
+                                            <span class="host-summary">📦 {{ package_upgrades | length }} packages updated</span>
+                                            {% elif has_error %}
+                                            <span class="host-status-badge error">❌ Failed</span>
+                                            <span class="host-summary">Error during patching</span>
+                                            {% else %}
+                                            <span class="host-status-badge warning">⚠️ No Updates</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="host-toggle">▼</span>
+                                    </div>
+
+                                    <div class="host-body collapsed">
+                                        <div class="host-details">
+                                            {% if host_data %}
+                                            <div class="host-meta">
+                                                <div class="host-meta-item">
+                                                    <span class="host-meta-label">Environment</span>
+                                                    <span class="host-meta-value">{{ host_data.content_facet_attributes.lifecycle_environment_name | default('N/A') }}</span>
+                                                </div>
+                                                <div class="host-meta-item">
+                                                    <span class="host-meta-label">Content View</span>
+                                                    <span class="host-meta-value">{{ host_data.content_facet_attributes.content_view_name | default('N/A') }}</span>
+                                                </div>
+                                                <div class="host-meta-item">
+                                                    <span class="host-meta-label">Operating System</span>
+                                                    <span class="host-meta-value">{{ host_data.operatingsystem_name | default('N/A') }}</span>
+                                                </div>
+                                                <div class="host-meta-item">
+                                                    <span class="host-meta-label">Job Duration</span>
+                                                    <span class="host-meta-value">{{ job.ended_at | default('N/A') }}</span>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if has_error %}
+                                            <div class="error-section">
+                                                <div class="error-title">❌ Error Encountered</div>
+                                                <div class="error-message">{{ output_text | truncate(500) }}</div>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if package_upgrades | length > 0 %}
+                                            <div class="packages-section">
+                                                <div class="section-title">📦 Packages Updated ({{ package_upgrades | length }})</div>
+                                                <table class="package-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Package</th>
+                                                            <th>Old Version</th>
+                                                            <th></th>
+                                                            <th>New Version</th>
+                                                            <th>Arch</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for pkg_name, pkg_info in package_upgrades.items() | sort %}
+                                                        <tr>
+                                                            <td class="package-name">{{ pkg_name }}</td>
+                                                            <td class="version-old">{{ package_old_versions[pkg_name] | default('N/A') }}</td>
+                                                            <td style="text-align: center; color: var(--success-color); font-weight: bold;">→</td>
+                                                            <td class="version-new">{{ pkg_info.version }}</td>
+                                                            <td>{{ pkg_info.arch }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if host_errata_data | length > 0 %}
+                                            <div class="errata-section">
+                                                <div class="section-title">⚠️ Associated Errata ({{ host_errata_data | length }})</div>
+                                                <div class="errata-list">
+                                                    {% for erratum in host_errata_data[:5] %}
+                                                    <div class="errata-item {{ erratum.severity | lower }}">
+                                                        <div class="errata-header">
+                                                            <div>
+                                                                <div class="errata-title">
+                                                                    ✅ {{ erratum.errata_id | default(erratum.id) }} - {{ erratum.title | default('No title') }}
+                                                                </div>
+                                                                <div class="errata-meta">
+                                                                    <strong>Type:</strong> {{ erratum.type | default('N/A') }} |
+                                                                    <strong>Issued:</strong> {{ erratum.issued | default('N/A') }}
+                                                                    {% if erratum.cves %}
+                                                                    | <strong>CVEs:</strong> {{ erratum.cves | join(', ') }}
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <span class="errata-severity-badge {{ erratum.severity | lower }}">{{ erratum.severity | default('N/A') }}</span>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                    {% if host_errata_data | length > 5 %}
+                                                    <div style="text-align: center; padding: 10px; color: var(--text-secondary); font-size: 0.9rem;">
+                                                        + {{ host_errata_data | length - 5 }} more errata (see CSV export for full list)
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            {% else %}
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                No host output data available for this job.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                    <div style="font-size: 4rem; opacity: 0.3;">📭</div>
+                    <h3>No Patching Jobs Found</h3>
+                    <p>No patching activity in the last {{ patching_report_data.report_period_days }} days.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Table View -->
+            <div id="tableView" class="table-view">
+                <p style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                    Table view shows job-level summary. Use cards view for detailed host information.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Calculate statistics
+        function calculateStats() {
+            const totalJobs = {{ patching_report_data.total_jobs | int }};
+            const successfulJobs = {{ patching_report_data.jobs | selectattr('succeeded', 'equalto', true) | list | length }};
+            const failedJobs = totalJobs - successfulJobs;
+
+            document.getElementById('successfulJobs').textContent = successfulJobs;
+            document.getElementById('failedJobs').textContent = failedJobs;
+            document.getElementById('totalJobsCount').textContent = totalJobs;
+            document.getElementById('visibleJobs').textContent = totalJobs;
+
+            if (totalJobs > 0) {
+                const rate = ((successfulJobs / totalJobs) * 100).toFixed(1);
+                document.getElementById('successRate').textContent = rate + '%';
+            }
+
+            // Count unique hosts and packages
+            const allHostCards = document.querySelectorAll('.host-card');
+            const uniqueHosts = new Set();
+            let totalPackages = 0;
+
+            allHostCards.forEach(card => {
+                const hostname = card.dataset.hostname;
+                if (hostname) uniqueHosts.add(hostname);
+
+                const packageRows = card.querySelectorAll('.package-table tbody tr');
+                totalPackages += packageRows.length;
+            });
+
+            document.getElementById('hostsPatched').textContent = uniqueHosts.size;
+            document.getElementById('totalPackages').textContent = totalPackages;
+        }
+
+        // Toggle functions
+        function toggleJob(header) {
+            const body = header.nextElementSibling;
+            header.classList.toggle('collapsed');
+            body.classList.toggle('collapsed');
+        }
+
+        function toggleHost(header) {
+            const body = header.nextElementSibling;
+            header.classList.toggle('collapsed');
+            body.classList.toggle('collapsed');
+        }
+
+        function expandAllJobs() {
+            document.querySelectorAll('.job-header').forEach(h => {
+                h.classList.remove('collapsed');
+                h.nextElementSibling.classList.remove('collapsed');
+            });
+        }
+
+        function collapseAllJobs() {
+            document.querySelectorAll('.job-header').forEach(h => {
+                h.classList.add('collapsed');
+                h.nextElementSibling.classList.add('collapsed');
+            });
+        }
+
+        function expandAllHosts() {
+            document.querySelectorAll('.host-header').forEach(h => {
+                h.classList.remove('collapsed');
+                h.nextElementSibling.classList.remove('collapsed');
+            });
+        }
+
+        function collapseAllHosts() {
+            document.querySelectorAll('.host-header').forEach(h => {
+                h.classList.add('collapsed');
+                h.nextElementSibling.classList.add('collapsed');
+            });
+        }
+
+        // Search
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', applyFilters);
+
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            let visibleCount = 0;
+            const allJobs = document.querySelectorAll('.job-group');
+
+            allJobs.forEach(jobGroup => {
+                const jobStatus = jobGroup.dataset.status;
+                const hosts = jobGroup.querySelectorAll('.host-card');
+
+                let jobHasVisibleHosts = false;
+
+                hosts.forEach(hostCard => {
+                    const hostname = hostCard.dataset.hostname || '';
+                    const hostStatus = hostCard.dataset.status || '';
+
+                    const matchesSearch = !searchTerm || hostname.includes(searchTerm);
+                    const matchesStatus = !statusFilter || hostStatus === statusFilter;
+
+                    if (matchesSearch && matchesStatus) {
+                        hostCard.classList.remove('hidden');
+                        jobHasVisibleHosts = true;
+                    } else {
+                        hostCard.classList.add('hidden');
+                    }
+                });
+
+                if (jobHasVisibleHosts || !searchTerm) {
+                    jobGroup.style.display = 'block';
+                    if (jobHasVisibleHosts) visibleCount++;
+                } else {
+                    jobGroup.style.display = 'none';
+                }
+            });
+
+            document.getElementById('visibleJobs').textContent = visibleCount;
+        }
+
+        function searchJobHosts(input, jobId) {
+            const searchTerm = input.value.toLowerCase();
+            const hostsContainer = document.getElementById('hosts-job-' + jobId);
+            const hosts = hostsContainer.querySelectorAll('.host-card');
+
+            hosts.forEach(host => {
+                const hostname = host.dataset.hostname || '';
+                if (hostname.includes(searchTerm)) {
+                    host.classList.remove('hidden');
+                } else {
+                    host.classList.add('hidden');
+                }
+            });
+        }
+
+        // View switching
+        function switchView(view) {
+            if (view === 'table') {
+                document.getElementById('cardsView').classList.remove('active');
+                document.getElementById('tableView').classList.add('active');
+                document.getElementById('viewCards').classList.remove('active');
+                document.getElementById('viewTable').classList.add('active');
+            } else {
+                document.getElementById('cardsView').classList.add('active');
+                document.getElementById('tableView').classList.remove('active');
+                document.getElementById('viewCards').classList.add('active');
+                document.getElementById('viewTable').classList.remove('active');
+            }
+        }
+
+        // Export functions
+        function exportToCSV() {
+            let csv = 'Hostname,Environment,JobID,JobDescription,Status,PackageName,OldVersion,NewVersion,Arch,ErrataID,CVE,Severity,ErrorMessage\n';
+
+            const jobs = document.querySelectorAll('.job-group');
+            jobs.forEach(jobGroup => {
+                const jobId = jobGroup.dataset['jobId'];
+                const jobDesc = jobGroup.querySelector('.job-title h3').textContent.trim();
+
+                const hosts = jobGroup.querySelectorAll('.host-card');
+                hosts.forEach(host => {
+                    const hostname = host.dataset.hostname;
+                    const status = host.dataset.status;
+                    const env = host.querySelector('.host-meta-value')?.textContent || 'N/A';
+
+                    const packageRows = host.querySelectorAll('.package-table tbody tr');
+                    if (packageRows.length > 0) {
+                        packageRows.forEach(row => {
+                            const cells = row.querySelectorAll('td');
+                            csv += `"${hostname}","${env}","${jobId}","${jobDesc}","${status}","${cells[0]?.textContent}","${cells[1]?.textContent}","${cells[3]?.textContent}","${cells[4]?.textContent}","","","",""\n`;
+                        });
+                    } else {
+                        const errorMsg = host.querySelector('.error-message')?.textContent.trim().replace(/"/g, '""') || '';
+                        csv += `"${hostname}","${env}","${jobId}","${jobDesc}","${status}","","","","","","","","${errorMsg}"\n`;
+                    }
+                });
+            });
+
+            downloadFile(csv, 'post_patching_report_{{ patching_report_data.report_generated | replace(":", "-") }}.csv', 'text/csv');
+        }
+
+        function exportToJSON() {
+            const data = {
+                report_type: 'post-patching',
+                generated: '{{ patching_report_data.report_generated }}',
+                satellite_server: '{{ satellite_server }}',
+                jobs: []
+            };
+
+            downloadFile(JSON.stringify(data, null, 2), 'post_patching_report_{{ patching_report_data.report_generated | replace(":", "-") }}.json', 'application/json');
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function applySort() {
+            // Sorting logic for jobs
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateStats();
+            applyFilters();
+        });
+    </script>
+</body>
+</html>

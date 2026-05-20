@@ -8,7 +8,17 @@ satellite_validate_certs: false
 # Report parameters
 report_days_back: 7  # How many days back to query for patching jobs
 report_format: "both"  # Options: html, csv, both
+
+# Report type determines the template and data focus
+# Options:
+#   - enhanced: Job-centric view with package updates and errata (existing default)
+#   - pre-patch: Shows AVAILABLE errata per host before patching (for security team review)
+#   - post-patch: Shows APPLIED errata per host after patching (for compliance verification)
+report_type: "enhanced"
+
+# Legacy template option (used only when report_type is "enhanced")
 report_template: "enhanced"  # Options: classic, enhanced (enhanced has search/filter features)
+
 report_output_dir: "/tmp/satellite_reports"
 report_filename_prefix: "satellite_patching_report"
 

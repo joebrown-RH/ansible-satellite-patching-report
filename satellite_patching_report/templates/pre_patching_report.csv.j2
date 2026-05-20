@@ -1,0 +1,22 @@
+Hostname,Environment,ContentView,ContentViewVersion,OperatingSystem,ErrataID,CVE,Type,Severity,Title,IssuedDate,PackagesAffected,PackageCount,Status,LastCheckin
+{% for host in patching_report_data.hosts %}
+{%- set host_errata_result = patching_report_data.host_errata | selectattr('item.id', 'equalto', host.id) | first | default(none) -%}
+{%- set host_errata = [] -%}
+{%- if host_errata_result and host_errata_result.json is defined and host_errata_result.json.results is defined -%}
+    {%- set host_errata = host_errata_result.json.results -%}
+{%- endif -%}
+{%- set environment = host.content_facet_attributes.lifecycle_environment_name | default('N/A') -%}
+{%- set content_view = host.content_facet_attributes.content_view_name | default('N/A') -%}
+{%- set os = host.operatingsystem_name | default('N/A') -%}
+{%- set last_checkin = host.subscription_facet_attributes.last_checkin | default('N/A') -%}
+{%- if host_errata | length > 0 -%}
+{%- for erratum in host_errata -%}
+{%- set cves = erratum.cves | join(';') if erratum.cves else '' -%}
+{%- set packages = erratum.packages | join(';') if erratum.packages else '' -%}
+{%- set package_count = erratum.packages | length if erratum.packages else 0 -%}
+"{{ host.name }}","{{ environment }}","{{ content_view }}","N/A","{{ os }}","{{ erratum.errata_id | default(erratum.id) }}","{{ cves }}","{{ erratum.type | default('N/A') }}","{{ erratum.severity | default('N/A') }}","{{ erratum.title | default('No title') | replace('"', '""') }}","{{ erratum.issued | default('N/A') }}","{{ packages }}","{{ package_count }}","AVAILABLE","{{ last_checkin }}"
+{% endfor -%}
+{%- else -%}
+"{{ host.name }}","{{ environment }}","{{ content_view }}","N/A","{{ os }}","","","","","No errata available - System up to date","","","0","UP-TO-DATE","{{ last_checkin }}"
+{% endif -%}
+{% endfor -%}
