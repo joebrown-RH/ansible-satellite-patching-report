@@ -86,7 +86,7 @@ PackageCount, Status, LastCheckin
 - Discrepancies (hosts that were skipped)
 
 **Best for:**
-- **Monday 9:30am CST** - Post-patching compliance verification
+- Post-patching compliance verification
 - Proving to security team that patches were applied
 - Identifying failed hosts requiring manual intervention
 - Finding hosts that were skipped without exemption
@@ -145,7 +145,7 @@ ErrorMessage
 For a complete security workflow, schedule both reports:
 
 ### AAP Job Template: Pre-Patch Report
-**Schedule:** Wednesdays at 9:30am CST (before weekly patching)
+**Schedule:** (before weekly patching)
 
 ```yaml
 ---
@@ -163,7 +163,7 @@ For a complete security workflow, schedule both reports:
 ```
 
 ### AAP Job Template: Post-Patch Report
-**Schedule:** Mondays at 9:30am CST (after weekend patching)
+**Schedule:** (after weekend patching)
 
 ```yaml
 ---
